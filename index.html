@@ -2,187 +2,38 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#202420">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="MF Tools">
-  <meta name="theme-color" content="#111111">
-  <title>MF Tools</title>
+  <meta name="description" content="Un atelier pour les vidéastes. Prospecter, préparer, tourner et livrer.">
+  <title>MF Tools V3 · L’atelier</title>
   <link rel="apple-touch-icon" href="icon.png">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=3.0.0">
 </head>
 <body>
-  <header class="topbar">
-    <div>
-      <div class="brand">MF TOOLS</div>
-      <div class="subtitle">Assistant de tournage • Matthieu Fonta</div>
-    </div>
-    <button class="ghost" id="homeBtn" onclick="goHome()">Accueil</button>
-  </header>
-
-  <main id="app">
-    <section id="home" class="screen active">
-      <div class="hero">
-        <h1>Tableau de bord</h1>
-        <p>Tout ce qu’il faut pour préparer, tourner et vendre.</p>
-      </div>
-
-      <div class="grid">
-        <button class="tile" onclick="openScreen('tournage')"><span>🎬</span><b>Tournage</b><small>Shotlist & déroulé</small></button>
-        <button class="tile" onclick="openScreen('mediaday')"><span>📸</span><b>Media Day</b><small>Joueurs & poses</small></button>
-        <button class="tile" onclick="openScreen('interview')"><span>🎤</span><b>Interview</b><small>Questions & Reels</small></button>
-        <button class="tile" onclick="openScreen('flash')"><span>💡</span><b>Flash</b><small>Réglages & placement</small></button>
-        <button class="tile" onclick="openScreen('checklists')"><span>✅</span><b>Checklists</b><small>Matériel & départ</small></button>
-        <button class="tile" onclick="openScreen('drone')"><span>🚁</span><b>Drone</b><small>Checklist mission</small></button>
-        <button class="tile" onclick="openScreen('tarifs')"><span>💰</span><b>Tarifs</b><small>Calcul rapide</small></button>
-        <button class="tile" onclick="openScreen('prospection')"><span>📋</span><b>Prospection</b><small>Contacts & suivi</small></button>
-      </div>
-      <div class="card compact">
-        <b>Sauvegarde automatique</b>
-        <p>Les données saisies restent sur cet iPad grâce au stockage local du navigateur.</p>
-      </div>
-    </section>
-
-    <section id="tournage" class="screen">
-      <h2>🎬 Tournage</h2>
-      <div class="card">
-        <label>Nom du projet</label>
-        <input id="shootName" data-save="shootName" placeholder="Ex. Restaurant Dupont">
-        <label>Déroulé</label>
-        <textarea id="shootPlan" data-save="shootPlan" rows="5" placeholder="09:00 installation&#10;09:30 interview&#10;10:15 B-roll..."></textarea>
-      </div>
-      <div class="card">
-        <div class="cardtitle">Shotlist</div>
-        <div id="shotList" class="checklist"></div>
-        <div class="row">
-          <input id="newShot" placeholder="Ajouter un plan">
-          <button onclick="addShot()">Ajouter</button>
-        </div>
-      </div>
-    </section>
-
-    <section id="mediaday" class="screen">
-      <h2>📸 Media Day</h2>
-      <div class="card">
-        <label>Équipe</label>
-        <input id="teamName" data-save="teamName" placeholder="Albert Basket Armagnac">
-        <div class="row">
-          <input id="newPlayer" placeholder="Nom du joueur">
-          <button onclick="addPlayer()">Ajouter</button>
-        </div>
-      </div>
-      <div id="players"></div>
-      <div class="card">
-        <div class="cardtitle">Poses de référence</div>
-        <div class="posegrid">
-          <div>1. Portrait buste<br><small>Regard caméra</small></div>
-          <div>2. Bras croisés<br><small>Épaules ouvertes</small></div>
-          <div>3. Plein pied<br><small>Ballon hanche</small></div>
-          <div>4. Action<br><small>Ballon devant</small></div>
-          <div>5. Célébration<br><small>Expression forte</small></div>
-          <div>6. Template<br><small>Bras décollés du corps</small></div>
-        </div>
-      </div>
-    </section>
-
-    <section id="interview" class="screen">
-      <h2>🎤 Interview / Reels</h2>
-      <div class="card">
-        <label>Client / sujet</label>
-        <input id="interviewClient" data-save="interviewClient" placeholder="Nom du client">
-        <label>Questions</label>
-        <div id="questions" class="checklist"></div>
-        <div class="row">
-          <input id="newQuestion" placeholder="Nouvelle question">
-          <button onclick="addQuestion()">Ajouter</button>
-        </div>
-      </div>
-      <div class="card">
-        <div class="cardtitle">Structure rapide d’un Reel</div>
-        <p><b>Hook</b> → problème → réponse → exemple → CTA.</p>
-        <p class="muted">Tourne une interview longue, puis utilise une question = un Reel, illustré avec des B-rolls.</p>
-      </div>
-    </section>
-
-    <section id="flash" class="screen">
-      <h2>💡 Flash / Studio</h2>
-      <div class="card">
-        <div class="two">
-          <div><label>ISO</label><select id="iso" data-save="iso"><option>100</option><option>200</option><option>400</option><option>800</option></select></div>
-          <div><label>Ouverture</label><select id="aperture" data-save="aperture"><option>f/4</option><option selected>f/5.6</option><option>f/8</option><option>f/11</option></select></div>
-          <div><label>Vitesse</label><select id="shutter" data-save="shutter"><option>1/125</option><option selected>1/160</option><option>1/200</option></select></div>
-          <div><label>Distance flash</label><input id="flashDist" data-save="flashDist" type="number" step="0.1" value="2"></div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="cardtitle">Base Media Day — 1 flash</div>
-        <div class="diagram">
-          <div class="flashdot">⚡<br><small>Flash</small></div>
-          <div class="subjectdot">🏀<br><small>Joueur</small></div>
-          <div class="cameradot">📷<br><small>Caméra</small></div>
-        </div>
-        <p><b>Point de départ :</b> ISO 100 • f/5.6 • 1/160 s • flash à ~45° • hauteur 2–2,2 m • environ 1,5–2,5 m du joueur.</p>
-        <p class="muted">La puissance dépend fortement du flash, du modeleur et de la distance. Fais une photo test puis ajuste la puissance du flash avant de toucher à l’ISO.</p>
-      </div>
-    </section>
-
-    <section id="checklists" class="screen">
-      <h2>✅ Checklists</h2>
-      <div class="card">
-        <div class="cardtitle">Avant de partir</div>
-        <div id="gearChecklist" class="checklist"></div>
-        <button class="danger" onclick="resetGear()">Réinitialiser les cases</button>
-      </div>
-    </section>
-
-    <section id="drone" class="screen">
-      <h2>🚁 Drone</h2>
-      <div class="card">
-        <div id="droneChecklist" class="checklist"></div>
-        <label>Notes mission</label>
-        <textarea data-save="droneNotes" rows="5" placeholder="Zone, contraintes, plans à obtenir..."></textarea>
-      </div>
-    </section>
-
-    <section id="tarifs" class="screen">
-      <h2>💰 Calculateur prestation</h2>
-      <div class="card">
-        <div class="two">
-          <div><label>Tournage (h)</label><input id="hoursShoot" type="number" value="4" step="0.5" oninput="calcPrice()"></div>
-          <div><label>Montage (h)</label><input id="hoursEdit" type="number" value="7" step="0.5" oninput="calcPrice()"></div>
-          <div><label>Tarif horaire cible (€)</label><input id="hourRate" type="number" value="60" step="5" oninput="calcPrice()"></div>
-          <div><label>Déplacement (km)</label><input id="km" type="number" value="0" step="1" oninput="calcPrice()"></div>
-          <div><label>€/km</label><input id="kmRate" type="number" value="0.70" step="0.05" oninput="calcPrice()"></div>
-          <div><label>Frais fixes (€)</label><input id="fixedCosts" type="number" value="0" step="10" oninput="calcPrice()"></div>
-        </div>
-      </div>
-      <div class="card result">
-        <div><span>Temps total</span><b id="totalHours">0 h</b></div>
-        <div><span>Production</span><b id="productionPrice">0 €</b></div>
-        <div><span>Déplacement</span><b id="travelPrice">0 €</b></div>
-        <div class="grand"><span>Prix calculé</span><b id="totalPrice">0 €</b></div>
-      </div>
-      <p class="muted">Outil de cadrage interne : ajuste toujours le prix selon valeur, complexité, droits, matériel et niveau de prestation.</p>
-    </section>
-
-    <section id="prospection" class="screen">
-      <h2>📋 Prospection</h2>
-      <div class="card">
-        <div class="row">
-          <input id="leadName" placeholder="Entreprise / contact">
-          <button onclick="addLead()">Ajouter</button>
-        </div>
-      </div>
-      <div id="leadList"></div>
-      <div class="card">
-        <div class="cardtitle">Speech court</div>
-        <p>Bonjour, je suis Matthieu Fonta, vidéaste basé dans les Landes. J’aide les entreprises locales à montrer leur savoir-faire avec des vidéos premium pensées pour leurs réseaux et leur communication. Je voulais voir avec vous si cela pourrait avoir du sens pour votre activité.</p>
-      </div>
-    </section>
-  </main>
-
-  <footer>MF Tools • données stockées localement sur l’appareil</footer>
-  <script src="app.js"></script>
+  <a class="skip" href="#main">Aller au contenu</a>
+  <aside id="sidebar" class="sidebar">
+    <a href="#today" class="brand"><span class="monogram">MF<span class="brand-dot"></span></span><span>TOOLS<span class="version">L’ATELIER · VERSION 03</span></span></a>
+    <div class="nav-label">MON ESPACE DE TRAVAIL</div>
+    <nav id="navigation" aria-label="Navigation principale"></nav>
+    <div class="sidebar-bottom"><div class="portrait">MF</div><div><strong id="profileName">Mon activité</strong><span id="profileLocation">Vidéaste indépendant</span></div><span class="live-dot" aria-hidden="true"></span></div>
+  </aside>
+  <div class="workspace">
+    <header class="topbar"><button id="menuBtn" class="icon-button mobile-only" aria-label="Ouvrir le menu" aria-expanded="false">☰</button><div class="breadcrumb">L’atelier <span>/</span> <strong id="pageLabel">Aujourd’hui</strong></div><div class="top-status"><span id="networkState" class="status-pill">Sur cet appareil</span><button class="button small subtle" data-action="backup" title="Exporter une sauvegarde">Sauvegarder</button></div></header>
+    <div id="notices" aria-live="polite"></div>
+    <main id="main" tabindex="-1"></main>
+    <footer class="footer"><span>MF TOOLS <b>03</b> · Les artisans de votre image.</span><span id="saveState" role="status">Données sur cet appareil</span></footer>
+  </div>
+  <div id="modalRoot"></div>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <div id="printArea"></div>
+  <input type="file" id="importFile" accept="application/json,.json" hidden>
+  <noscript><p class="notice">Active JavaScript dans Safari pour utiliser MF Tools.</p></noscript>
+  <script src="data.js?v=3.0.0"></script>
+  <script src="app.js?v=3.0.0"></script>
 </body>
 </html>

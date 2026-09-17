@@ -1,15 +1,11 @@
 {
-  "name": "MF Tools",
+  "name": "MF Tools · L’atelier",
   "short_name": "MF Tools",
+  "lang": "fr",
   "start_url": "./",
+  "scope": "./",
   "display": "standalone",
-  "background_color": "#0f0f10",
-  "theme_color": "#111111",
-  "icons": [
-    {
-      "src": "icon.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    }
-  ]
+  "background_color": "#f4f2ec",
+  "theme_color": "#202420",
+  "icons": [{"src":"icon.png","sizes":"512x512","type":"image/png"}]
 }

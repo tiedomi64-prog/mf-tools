@@ -1,165 +1,553 @@
-
-(function(){
-  var defaultShots = [
-    "Plan large / establishing shot","Façade / enseigne","Détails / textures",
-    "Sujet en action","Gros plan mains","Plan mouvement gimbal","Ambiance / équipe","Plan final / hero shot"
-  ];
-  var defaultQuestions = [
-    "Présentez votre entreprise en une phrase.",
-    "Quel problème résolvez-vous pour vos clients ?",
-    "Qu’est-ce qui vous différencie ?",
-    "Comment travaillez-vous concrètement ?",
-    "Pouvez-vous donner un exemple client ?",
-    "Quelle erreur vos clients font-ils souvent ?",
-    "Quel conseil donneriez-vous à quelqu’un qui hésite ?",
-    "Que doit faire quelqu’un qui veut travailler avec vous ?"
-  ];
-  var defaultGear = [
-    "Sony A6500 + batterie","Tamron 17-70 mm","Cartes mémoire",
-    "iPhone + cage SmallRig","DJI RS3 Mini","Drone + batteries + ND",
-    "Trépied / support","Flash / lumière + déclencheur","Chargeurs / multiprise",
-    "Micro / audio si nécessaire","Chiffon optique","Eau / encas"
-  ];
-  var defaultDrone = [
-    "Batteries chargées","Carte mémoire libre","Hélices contrôlées",
-    "Météo / vent vérifiés","Zone de vol vérifiée","Autorisation / accord client",
-    "Décollage et retour sécurisés","RTH / altitude paramétrés","Plan de vol / shotlist"
-  ];
-  var poses = ["Portrait buste","Bras croisés","Plein pied","Ballon","Célébration","Template réseaux"];
-
-  window.openScreen = function(id){
-    var screens=document.querySelectorAll(".screen");
-    for(var i=0;i<screens.length;i++) screens[i].className="screen";
-    document.getElementById(id).className="screen active";
-    document.getElementById("homeBtn").style.display=id==="home"?"none":"block";
-    window.scrollTo(0,0);
+/* MF Tools 3.0 — JavaScript ES5, sans service tiers, sans compte. */
+(function () {
+  'use strict';
+  var D = window.MF_DATA, KEY = 'mf_tools_v3', state, page = 'today', selectedProject = '', selectedInterview = '', selectedMedia = '', fieldTab = 'gear', quoteTab = 'offers';
+  var leadFilter = 'Tous', leadSearch = '', leadSector = 'Tous', lastFocus = null, toastTimer, storageIssue = '', blocked = false, lastRevision = '', waitingWorker = null, importMode = '', quoteDraft = null, newVisit = false, weekShift=0, pendingImport=null;
+  var paths = {
+    home:'M3 10 12 3l9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z',
+    phone:'M7 3H4a1 1 0 0 0-1 1c0 9.4 7.6 17 17 17a1 1 0 0 0 1-1v-3l-5-2-2 2a16 16 0 0 1-7-7l2-2Z',
+    chart:'M4 3v17h17M8 16v-5m5 5V7m5 9V4', film:'M3 4h18v16H3ZM3 9h18M8 4v5m8-5v5m-5 4 5 3-5 3Z',
+    mic:'M9 4a3 3 0 0 1 6 0v7a3 3 0 0 1-6 0ZM5 10v1a7 7 0 0 0 14 0v-1M12 18v4m-4 0h8',
+    users:'M15 21v-2a5 5 0 0 0-10 0v2M10 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M17 4a4 4 0 0 1 0 7m1 4a5 5 0 0 1 3 4v2',
+    bag:'M8 6V4h8v2M3 7h18v14H3ZM3 12h18M10 11v3h4v-3', calendar:'M4 5h16v16H4ZM8 2v6m8-6v6M4 11h16m-12 4h2m4 0h2',
+    settings:'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8M9 3h6l1 3 3 1 2 5-2 5-3 1-1 3H9l-1-3-3-1-2-5 2-5 3-1Z',
+    plus:'M12 5v14M5 12h14', arrow:'M5 12h14m-6-6 6 6-6 6', check:'m4 12 5 5L20 6', close:'m6 6 12 12M6 18 18 6',
+    clock:'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18M12 7v5l3 2', download:'M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5',
+    camera:'M3 7h5l2-3h4l2 3h5v14H3ZM12 10a4 4 0 1 0 0 8 4 4 0 0 0 0-8', mail:'M3 5h18v14H3ZM3 5l9 7 9-7',
+    edit:'m4 17-1 4 4-1L20 7l-3-3ZM14 7l3 3', trash:'M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7',
+    target:'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10M12 10v4m-2-2h4',
+    copy:'M8 8h13v13H8ZM16 8V3H3v13h5', print:'M6 9V3h12v6M6 17H3V9h18v8h-3M6 14h12v7H6Z',
+    shield:'M12 3 3 6v6c0 5 9 9 9 9s9-4 9-9V6ZM8 12l3 3 5-6', spark:'M12 3 9 9 3 12l6 3 3 6 3-6 6-3-6-3Z'
   };
-  window.goHome=function(){openScreen("home")};
-
-  function loadSimple(){
-    var fields=document.querySelectorAll("[data-save]");
-    for(var i=0;i<fields.length;i++){
-      var k=fields[i].getAttribute("data-save");
-      var v=localStorage.getItem("mf_"+k);
-      if(v!==null) fields[i].value=v;
-      fields[i].addEventListener("input",function(){
-        localStorage.setItem("mf_"+this.getAttribute("data-save"),this.value);
-      });
-    }
+  function icon(n) { return '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="'+(paths[n]||paths.spark)+'"/></svg>'; }
+  function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+  function clone(v) { return JSON.parse(JSON.stringify(v)); }
+  function uid(prefix) { return (prefix || 'id') + '-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2,9); }
+  function today() { return dateKey(new Date()); }
+  function dateKey(d) { return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+  function pad(n) { return n < 10 ? '0'+n : String(n); }
+  function shiftDate(s,n) { var d=parseDate(s); d.setDate(d.getDate()+n); return dateKey(d); }
+  function parseDate(s) { var p=String(s).split('-'); return new Date(+p[0],+p[1]-1,+p[2],12,0,0); }
+  function dateLabel(s,short) { if (!s) return 'À définir'; var d=parseDate(s); return d.toLocaleDateString('fr-FR',short?{day:'numeric',month:'short'}:{weekday:'long',day:'numeric',month:'long'}); }
+  function money(n) { return (Math.round((+n||0)*100)/100).toLocaleString('fr-FR',{maximumFractionDigits:2})+' €'; }
+  function num(n) { return Math.max(0,parseFloat(String(n).replace(',','.'))||0); }
+  function get(id) { return document.getElementById(id); }
+  function value(form,name) { var el=form.elements[name]; return el ? el.value : ''; }
+  function find(list,id) { for(var i=0;i<list.length;i++) if(list[i].id===id) return list[i]; return null; }
+  function checks(list) { return list.map(function(t){return {t:t,d:false};}); }
+  function countDone(a) { return a.filter(function(x){return x.d;}).length; }
+  function progress(done,total) { return '<div class="progress"><span style="width:'+Math.min(100,total?done/total*100:0)+'%"></span></div>'; }
+  function badge(t,type) { var c=type || (t==='Gagné'||t==='Livré'?'green':t==='Perdu'?'red':t==='Relance'||t==='RDV pris'?'amber':'');return '<span class="badge '+c+'">'+esc(t)+'</span>'; }
+  function btn(text,action,id,style,ic) { return '<button type="button" class="button '+(style||'')+'" data-action="'+action+'"'+(id!==undefined?' data-id="'+esc(id)+'"':'')+'>'+(ic?icon(ic):'')+esc(text)+'</button>'; }
+  function empty(title,desc,button) { return '<div class="empty">'+icon('spark')+'<h3>'+esc(title)+'</h3><p>'+esc(desc)+'</p>'+(button||'')+'</div>'; }
+  function opts(list,chosen) { return list.map(function(x){var v=typeof x==='string'?x:x[0],t=typeof x==='string'?x:x[1];return '<option value="'+esc(v)+'"'+(String(v)===String(chosen)?' selected':'')+'>'+esc(t)+'</option>';}).join(''); }
+  function input(name,label,v,type,attrs,help) { return '<label class="field"><span>'+esc(label)+'</span><input name="'+name+'" type="'+(type||'text')+'" value="'+esc(v)+'" '+(attrs||'')+'>'+(help?'<small class="help">'+esc(help)+'</small>':'')+'</label>'; }
+  function area(name,label,v,rows,attrs) { return '<label class="field"><span>'+esc(label)+'</span><textarea name="'+name+'" rows="'+(rows||3)+'" '+(attrs||'')+'>'+esc(v)+'</textarea></label>'; }
+  function select(name,label,list,v,attrs) { return '<label class="field"><span>'+esc(label)+'</span><select name="'+name+'" '+(attrs||'')+'>'+opts(list,v)+'</select></label>'; }
+  function head(kicker,title,desc,actions) { return '<div class="page-head"><div><div class="kicker">'+esc(kicker)+'</div><h1>'+esc(title)+'</h1><p>'+esc(desc)+'</p></div>'+(actions?'<div class="head-actions">'+actions+'</div>':'')+'</div>'; }
+  function actions(submit) { return '<div class="form-actions">'+btn('Annuler','close',undefined,'secondary')+'<button class="button" type="submit">'+esc(submit||'Enregistrer')+'</button></div>'; }
+  function project(id,name,type) { return {id:id||uid('project'),name:name||'Nouveau tournage',type:type||'Film vitrine',client:'',date:'',time:'09:00',location:'',status:'À préparer',format:'16:9',brief:'',plan:'',notes:'',shots:checks(D.shots[type]||D.shots['Film vitrine']),gear:checks(D.gear),drone:checks(D.drone),delivery:checks(D.delivery),droneNotes:'',deliverables:'',prep:[]}; }
+  function questions() { return D.reelQuestions.map(function(q){return {id:uid('reel'),stage:q[0],q:q[1],hook:q[2],broll:q[3],cta:'',timecode:'',interview:false,illustration:false,edited:false,delivered:false};}); }
+  function base() { return {schema:3,formation:formationBase(),version:D.version,resources:{scripts:{},terrain:''},updatedAt:'',profile:{name:'',fullname:'',city:'',monthlyTarget:0,hourlyTarget:0,reserve:0,kmRate:0,session1:'09:30',session2:'14:00',largeText:false},leads:[],projects:[],quotes:[],interviews:[],media:[],content:[],sessions:{},gear:checks(D.gear),drone:checks(D.drone),droneNotes:'',flash:{iso:'100',aperture:'f/5.6',shutter:'1/160',distance:'2',notes:''},offers:clone(D.offers),migration:null,legacy:{},lastBackup:''}; }
+  function toast(msg) { get('toast').textContent=msg;get('toast').className='show';clearTimeout(toastTimer);toastTimer=setTimeout(function(){get('toast').className='';},4200); }
+  function storageNotice(msg) { storageIssue=msg;renderNotices();get('saveState').textContent='Sauvegarde impossible'; }
+  function persist(force) {
+    if(blocked) {storageNotice('Une autre fenêtre a modifié les données ou la sauvegarde est illisible. Exporte tes saisies avant de recharger cette page.');return false;}
+    try {
+      var existing=localStorage.getItem(KEY), parsed=existing&&!force?JSON.parse(existing):null;
+      if(parsed && lastRevision && parsed.updatedAt!==lastRevision) {blocked=true;storageNotice('Une autre fenêtre a enregistré des changements. Exporte tes saisies puis recharge la page pour reprendre la dernière version.');return false;}
+      state.updatedAt=new Date().toISOString()+'-'+Math.random().toString(36).slice(2,6);
+      localStorage.setItem(KEY,JSON.stringify(state));lastRevision=state.updatedAt;storageIssue='';
+      get('saveState').textContent='Enregistré sur cet appareil · '+new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});return true;
+    } catch(e) { storageNotice('Le navigateur ne permet pas d’enregistrer ces changements. Exporte une sauvegarde maintenant et vérifie l’espace disponible.');return false; }
   }
-  function getJSON(k,fallback){
-    try{var v=JSON.parse(localStorage.getItem(k));return v||fallback}catch(e){return fallback}
-  }
-  function setJSON(k,v){localStorage.setItem(k,JSON.stringify(v))}
-
-  function renderList(holderId,key,defaults,removable){
-    var holder=document.getElementById(holderId), items=getJSON(key,defaults.map(function(t){return {t:t,d:false}}));
-    holder.innerHTML="";
-    for(var i=0;i<items.length;i++){
-      (function(idx){
-        var r=document.createElement("div");r.className="checkrow";
-        var cb=document.createElement("input");cb.type="checkbox";cb.checked=!!items[idx].d;
-        cb.onchange=function(){items[idx].d=this.checked;setJSON(key,items)};
-        var g=document.createElement("div");g.className="grow";g.textContent=items[idx].t;
-        r.appendChild(cb);r.appendChild(g);
-        if(removable){
-          var x=document.createElement("button");x.className="remove";x.textContent="✕";
-          x.onclick=function(){items.splice(idx,1);setJSON(key,items);renderList(holderId,key,defaults,removable)};
-          r.appendChild(x);
-        }
-        holder.appendChild(r);
-      })(i);
+  function legacyRead(k,fallback) { try {var x=JSON.parse(state.legacy[k]);return x===null?fallback:x;}catch(e){return fallback;} }
+  function migrate() {
+    var keys=['mf_shootName','mf_shootPlan','mf_shots','mf_questions','mf_interviewClient','mf_players','mf_teamName','mf_leads','mf_gear','mf_drone','mf_droneNotes','mf_iso','mf_aperture','mf_shutter','mf_flashDist'];
+    keys.forEach(function(k){var v=localStorage.getItem(k);if(v!==null)state.legacy[k]=v;});
+    if(!Object.keys(state.legacy).length)return;
+    if(state.legacy.mf_shootName || state.legacy.mf_shootPlan || state.legacy.mf_shots) {
+      var p=project('v1-project',state.legacy.mf_shootName||'Tournage repris de la V1','Film vitrine');p.plan=state.legacy.mf_shootPlan||'';p.shots=cleanChecks(legacyRead('mf_shots',p.shots));state.projects.push(p);
     }
-  }
-
-  window.addShot=function(){
-    var inp=document.getElementById("newShot"),t=inp.value.replace(/^\s+|\s+$/g,"");if(!t)return;
-    var a=getJSON("mf_shots",defaultShots.map(function(x){return {t:x,d:false}}));a.push({t:t,d:false});setJSON("mf_shots",a);inp.value="";renderList("shotList","mf_shots",defaultShots,true);
-  };
-  window.addQuestion=function(){
-    var inp=document.getElementById("newQuestion"),t=inp.value.replace(/^\s+|\s+$/g,"");if(!t)return;
-    var a=getJSON("mf_questions",defaultQuestions.map(function(x){return {t:x,d:false}}));a.push({t:t,d:false});setJSON("mf_questions",a);inp.value="";renderList("questions","mf_questions",defaultQuestions,true);
-  };
-  window.resetGear=function(){
-    localStorage.removeItem("mf_gear");renderList("gearChecklist","mf_gear",defaultGear,false);
-  };
-
-  function renderPlayers(){
-    var holder=document.getElementById("players"),players=getJSON("mf_players",[]);
-    holder.innerHTML="";
-    for(var i=0;i<players.length;i++){
-      (function(idx){
-        var p=document.createElement("div");p.className="player";
-        var h=document.createElement("div");h.className="playerhead";
-        var name=document.createElement("b");name.textContent=players[idx].name;
-        var del=document.createElement("button");del.className="remove";del.textContent="Supprimer";
-        del.onclick=function(){players.splice(idx,1);setJSON("mf_players",players);renderPlayers()};
-        h.appendChild(name);h.appendChild(del);p.appendChild(h);
-        var body=document.createElement("div");body.className="playerbody";
-        for(var j=0;j<poses.length;j++){
-          (function(poseIdx){
-            var r=document.createElement("div");r.className="checkrow";
-            var cb=document.createElement("input");cb.type="checkbox";cb.checked=!!players[idx].poses[poseIdx];
-            cb.onchange=function(){players[idx].poses[poseIdx]=this.checked;setJSON("mf_players",players)};
-            var tx=document.createElement("div");tx.className="grow";tx.textContent=poses[poseIdx];
-            r.appendChild(cb);r.appendChild(tx);body.appendChild(r);
-          })(j);
-        }
-        p.appendChild(body);holder.appendChild(p);
-      })(i);
+    if(state.legacy.mf_interviewClient || state.legacy.mf_questions) {
+      var qs=legacyRead('mf_questions',[]);state.interviews.push({id:'v1-interview',name:state.legacy.mf_interviewClient||'Interview reprise de la V1',projectId:'',notes:'',questions:Array.isArray(qs)?qs.map(function(q,i){return {id:'v1-q-'+i,stage:'MOFU',q:String(q.t||''),hook:'',broll:'',cta:'',timecode:'',interview:!!q.d,illustration:false,edited:false,delivered:false};}):[]});
     }
-  }
-  window.addPlayer=function(){
-    var inp=document.getElementById("newPlayer"),t=inp.value.replace(/^\s+|\s+$/g,"");if(!t)return;
-    var p=getJSON("mf_players",[]);p.push({name:t,poses:[false,false,false,false,false,false]});setJSON("mf_players",p);inp.value="";renderPlayers();
-  };
-
-  function renderLeads(){
-    var holder=document.getElementById("leadList"),leads=getJSON("mf_leads",[]);
-    holder.innerHTML="";
-    for(var i=0;i<leads.length;i++){
-      (function(idx){
-        var c=document.createElement("div");c.className="leadcard";
-        var top=document.createElement("div");top.className="leadtop";
-        var b=document.createElement("b");b.textContent=leads[idx].name;
-        var d=document.createElement("button");d.className="remove";d.textContent="✕";
-        d.onclick=function(){leads.splice(idx,1);setJSON("mf_leads",leads);renderLeads()};
-        top.appendChild(b);top.appendChild(d);c.appendChild(top);
-        var s=document.createElement("select");
-        ["À contacter","Contacté","Relance","RDV pris","Devis envoyé","Gagné","Perdu"].forEach(function(x){
-          var o=document.createElement("option");o.textContent=x;o.value=x;if(leads[idx].status===x)o.selected=true;s.appendChild(o);
-        });
-        s.onchange=function(){leads[idx].status=this.value;setJSON("mf_leads",leads)};
-        c.appendChild(s);holder.appendChild(c);
-      })(i);
+    if(state.legacy.mf_players || state.legacy.mf_teamName) {
+      var ps=legacyRead('mf_players',[]);state.media.push({id:'v1-media',name:state.legacy.mf_teamName||'Media Day repris de la V1',date:'',notes:'',players:Array.isArray(ps)?ps.map(function(p,i){return {id:'v1-player-'+i,name:String(p.name||'Joueur'),number:'',file:'',poses:D.poses.map(function(_,n){return !!(p.poses&&p.poses[n]);})};}):[]});
     }
+    var leads=legacyRead('mf_leads',[]);if(Array.isArray(leads))leads.forEach(function(l,i){state.leads.push({id:'v1-lead-'+i,name:String(l.name||'Prospect'),contact:'',sector:'Autre',city:'',phone:'',email:'',status:D.statuses.indexOf(l.status)>=0?l.status:'À contacter',priority:'Normale',offer:'',amount:0,nextDate:'',nextAction:'',notes:'Repris de la V1.',history:[]});});
+    state.gear=cleanChecks(legacyRead('mf_gear',state.gear));state.drone=cleanChecks(legacyRead('mf_drone',state.drone));state.droneNotes=state.legacy.mf_droneNotes||'';
+    ['iso','aperture','shutter'].forEach(function(k){state.flash[k]=state.legacy['mf_'+k]||state.flash[k];});state.flash.distance=state.legacy.mf_flashDist||'2';
+    state.migration={date:today(),message:'Les données V1 ont été reprises. Les anciennes clés restent intactes.'};persist();
   }
-  window.addLead=function(){
-    var inp=document.getElementById("leadName"),t=inp.value.replace(/^\s+|\s+$/g,"");if(!t)return;
-    var a=getJSON("mf_leads",[]);a.push({name:t,status:"À contacter"});setJSON("mf_leads",a);inp.value="";renderLeads();
-  };
-
-  window.calcPrice=function(){
-    function n(id){return parseFloat(document.getElementById(id).value)||0}
-    var hs=n("hoursShoot"),he=n("hoursEdit"),rate=n("hourRate"),km=n("km"),kr=n("kmRate"),fc=n("fixedCosts");
-    var th=hs+he, prod=th*rate, travel=km*kr, total=prod+travel+fc;
-    document.getElementById("totalHours").textContent=th.toFixed(1)+" h";
-    document.getElementById("productionPrice").textContent=prod.toFixed(0)+" €";
-    document.getElementById("travelPrice").textContent=travel.toFixed(2)+" €";
-    document.getElementById("totalPrice").textContent=total.toFixed(2)+" €";
-  };
-
-  window.addEventListener("load",function(){
-    document.getElementById("homeBtn").style.display="none";
-    loadSimple();
-    renderList("shotList","mf_shots",defaultShots,true);
-    renderList("questions","mf_questions",defaultQuestions,true);
-    renderList("gearChecklist","mf_gear",defaultGear,false);
-    renderList("droneChecklist","mf_drone",defaultDrone,false);
-    renderPlayers();renderLeads();calcPrice();
-
-    if("serviceWorker" in navigator){
-      navigator.serviceWorker.register("sw.js").catch(function(){});
+  function initialize() {
+    state=base();try {var raw=localStorage.getItem(KEY);if(raw){var parsed=JSON.parse(raw);state=validateState(parsed);lastRevision=parsed.updatedAt||'';}else {newVisit=true;var v2=localStorage.getItem('mf_tools_v2');if(v2){state=validateState(JSON.parse(v2));state.migration={date:today(),message:'Tes données V2 ont été reprises en V3. La sauvegarde V2 reste intacte.'};persist();}else migrate();}} catch(e) {blocked=true;storageIssue='La sauvegarde existante ne peut pas être lue. Elle reste intacte. Exporte-la depuis Réglages avant toute restauration.';}
+    if(window.MF_STARTER_PACK&&!blocked){try{state=mergeIncoming(state,validateState(window.MF_STARTER_PACK.data));persist();}catch(e){storageIssue='Le dossier intégré n’a pas pu être chargé : '+e.message;}}
+    document.body.classList.toggle('large-text',state.profile.largeText);
+    renderNav();render();renderNotices();initWorker();setInterval(tick,1000);
+  }
+  function renderNotices() {
+    var html='';if(storageIssue)html+='<div class="notice error">'+esc(storageIssue)+' '+btn('Exporter','backup',undefined,'small secondary')+'</div>';
+    if(newVisit && state.migration)html+='<div class="notice">'+esc(state.migration.message)+' '+btn('Compris','dismiss',undefined,'small secondary')+'</div>';
+    if(waitingWorker)html+='<div class="notice">Une mise à jour est prête. Enregistre ton formulaire avant de l’appliquer. '+btn('Actualiser l’application','update',undefined,'small secondary')+'</div>';
+    get('notices').innerHTML=html;
+  }
+  function renderNav() {
+    get('profileName').textContent=state.profile.fullname||state.profile.name||'Mon activité';get('profileLocation').textContent=state.profile.city?'Vidéaste · '+state.profile.city:'Vidéaste indépendant';
+    get('navigation').innerHTML=D.nav.map(function(n,i){return '<a class="nav-item'+(page===n[0]?' active':'')+(i===3||i===8?' nav-gap':'')+'" href="#'+n[0]+'"'+(page===n[0]?' aria-current="page"':'')+'>'+icon(n[2])+esc(n[1])+'</a>';}).join('');
+    for(var i=0;i<D.nav.length;i++)if(D.nav[i][0]===page)get('pageLabel').textContent=D.nav[i][1];
+  }
+  function navigate(p) { if(window.location.hash!=='#'+p)window.location.hash=p;else render(); }
+  function render() {
+    page=window.location.hash.slice(1)||'today';if(!D.nav.some(function(n){return n[0]===page;}))page='today';
+    renderNav();var renderer={today:renderToday,leads:renderLeads,quotes:renderQuotes,projects:renderProjects,reels:renderReels,media:renderMedia,field:renderField,content:renderContent,formation:renderFormation,settings:renderSettings};
+    get('main').innerHTML=renderer[page]();get('sidebar').classList.remove('open');get('menuBtn').setAttribute('aria-expanded','false');if(page==='quotes'&&quoteTab==='calculator')updateCalc();tick(false);
+  }
+  function activeLead(l) {return ['Gagné','Perdu'].indexOf(l.status)<0&&(l.status!=='En sommeil'||(l.nextDate&&l.nextDate<=today()));}
+  function leadQueue() { return state.leads.filter(activeLead).sort(function(a,b){
+    function rank(x){return x.nextDate&&x.nextDate<=today()?0:x.priority==='Haute'?1:x.status==='À contacter'?2:3;}
+    return rank(a)-rank(b)||(a.nextDate||'9999').localeCompare(b.nextDate||'9999')||a.name.localeCompare(b.name);
+  }); }
+  function dayLogs(day) { var a=[];state.leads.forEach(function(l){l.history.forEach(function(h){if(h.date.slice(0,10)===day)a.push({lead:l,log:h});});});return a; }
+  function monthRevenue() { var prefix=today().slice(0,7);return state.quotes.filter(function(q){return q.status==='Accepté'&&q.acceptedDate&&q.acceptedDate.slice(0,7)===prefix;}).reduce(function(s,q){return s+q.price;},0); }
+  function sessionData(day) {return state.sessions[day]||[{seconds:0,running:false,startAt:0,completed:false},{seconds:0,running:false,startAt:0,completed:false}];}
+  function elapsed(s) {return Math.min(3600,Math.max(0,s.seconds+(s.running?Math.floor((Date.now()-s.startAt)/1000):0)));}
+  function stat(label,v,foot,ic) {return '<div class="stat"><div class="stat-top"><div class="stat-label">'+esc(label)+'</div>'+icon(ic)+'</div><div class="stat-value">'+v+'</div><div class="stat-foot">'+esc(foot)+'</div></div>';}
+  function renderToday() {
+    var q=leadQueue(), revenue=monthRevenue(), logs=dayLogs(today()), due=q.filter(function(l){return l.nextDate&&l.nextDate<=today();}).length;
+    var projects=state.projects.filter(function(p){return p.status!=='Livré';}).sort(function(a,b){return (a.date||'9999').localeCompare(b.date||'9999');});
+    var hour=new Date().getHours(), hello=hour>=18?'Bonsoir':hour<12?'Bonjour':'Bon après-midi';
+    var html=head(dateLabel(today()).toUpperCase(),state.profile.name?hello+', '+state.profile.name+'.':'Bienvenue dans ton atelier.','Un contact, une prochaine action, un projet qui avance.',btn('Nouveau contact','lead-new',undefined,'','plus'));
+    html+='<div class="hero"><div class="hero-main"><div class="kicker">LE CAP DU JOUR</div><h2>Deux heures pour faire avancer ton activité.</h2><p>Deux sessions de 60 minutes. Après chaque échange, note le résultat et fixe la suite.</p>'+btn(q.length?'Commencer ma prospection':'Préparer mes contacts','start-prospect',undefined,'accent','arrow')+'</div><div class="hero-side"><span class="eyebrow">Objectif · '+parseDate(today()).toLocaleDateString('fr-FR',{month:'long'})+'</span><div class="goal-figure">'+money(revenue)+' <small>/ '+money(state.profile.monthlyTarget)+'</small></div>'+progress(revenue,state.profile.monthlyTarget)+'<span class="muted">Devis acceptés ce mois-ci<br>'+money(Math.max(0,state.profile.monthlyTarget-revenue))+' pour atteindre ton objectif.</span></div></div>';
+    html+='<div class="stats">'+stat('Démarches aujourd’hui',logs.length+' <small>/ 12</small>','Repère : 6 contacts par session','phone')+stat('Relances à faire',String(due),'Échéances arrivées ou dépassées','clock')+stat('Rendez-vous pris',String(state.leads.filter(function(l){return l.status==='RDV pris';}).length),'Dans ton suivi commercial','calendar')+stat('Projets en cours',String(projects.length),'De la préparation à la livraison','film')+'</div>';
+    html+='<div class="grid-two section-space"><section class="panel"><div class="panel-head"><div><h2>Mes sessions de prospection</h2><p>Tu appelles. Tu notes. Tu avances.</p></div>'+icon('clock')+'</div>';
+    var ss=sessionData(today()), w=new Date().getDay();ss.forEach(function(s,i){var time=w===3?(i===0?'13:00':'15:00'):(i===0?state.profile.session1:state.profile.session2);html+='<div class="session-row'+(s.completed?' completed':'')+'"><span class="session-number">0'+(i+1)+'</span><div class="session-text"><strong>'+(i===0?'Nouveaux contacts':'Contacts & relances')+'</strong><small>'+esc(time)+' · objectif 6 démarches</small></div><span class="timer mono" id="timer-'+i+'">60:00</span>'+btn(s.completed?'Terminée':s.running?'Pause':s.seconds?'Reprendre':'Démarrer','session',String(i),s.running?'small secondary':'small')+'</div>';});
+    html+='<div class="session-hint"><span>5 min de préparation</span><span>45 min de démarches + notes</span><span>10 min de suivi</span></div><div class="muted small-text" id="sessionPhase" style="margin-top:12px"></div></section><section class="panel"><div class="panel-head"><div><h2>Les prochains contacts</h2><p>Relances dues, puis contacts prioritaires.</p></div><a class="text-button" href="#leads">Tout voir ↗</a></div>';
+    html+=q.length?q.slice(0,3).map(function(l,i){return '<div class="list-row"><span class="number mono">0'+(i+1)+'</span><div class="row-main"><strong>'+esc(l.name)+'</strong><small>'+esc(l.nextAction||l.sector)+'</small></div>'+btn('Ouvrir','lead-open',l.id,'small secondary')+'</div>';}).join(''):empty('Ton prochain client commence ici.','Ajoute un contact ou importe ton dossier personnel depuis Réglages.',btn('Importer mon dossier','import-pack',undefined,'small secondary'));
+    html+='</section></div><div class="section-title"><h2>À l’atelier</h2><a class="text-button" href="#projects">Mes tournages ↗</a></div>';
+    if(projects.length)html+='<div class="panel">'+projects.slice(0,3).map(function(p){return '<div class="list-row"><span class="number">'+icon('film')+'</span><div class="row-main"><strong>'+esc(p.name)+'</strong><small>'+dateLabel(p.date,true)+' · '+esc(p.status)+'</small></div>'+btn('Préparer','project-open',p.id,'small secondary')+'</div>';}).join('')+'</div>';
+    html+='<div class="shortcut-grid"><a class="shortcut" href="#formation">'+icon('spark')+'<div><strong>Ma formation vidéo</strong><small>Retrouver une méthode et l’appliquer.</small></div><span class="arrow">↗</span></a><a class="shortcut" href="#quotes">'+icon('chart')+'<div><strong>Chiffrer une prestation</strong><small>Le prix, le temps et la marge.</small></div><span class="arrow">↗</span></a><a class="shortcut" href="#reels">'+icon('mic')+'<div><strong>Une interview, huit Reels</strong><small>Questions, plans, montage.</small></div><span class="arrow">↗</span></a><a class="shortcut" href="#media">'+icon('camera')+'<div><strong>Préparer un Media Day</strong><small>Une équipe, six poses.</small></div><span class="arrow">↗</span></a></div>';return html;
+  }
+  function renderLeads() {
+    var html=head('DÉVELOPPER L’ACTIVITÉ','Chaque contact compte.','Un historique, une échéance et une prochaine action pour chaque prospect.',btn('Bilan du jour','daily-report',undefined,'secondary','copy')+btn('Ajouter','lead-new',undefined,'','plus'));
+    html+=formationShortcut('fbca572d-13e3-4854-91f5-edf89e4e7fcc','Avant un appel · tes notes sur les objections');
+    html+='<div class="filters"><input id="leadSearch" aria-label="Rechercher un contact" placeholder="Entreprise, contact, ville…" value="'+esc(leadSearch)+'"><select id="leadStatus" aria-label="Filtrer par statut">'+opts(['Tous'].concat(D.statuses).concat(['À relancer']),leadFilter)+'</select><select id="leadSector" aria-label="Filtrer par secteur">'+opts(['Tous'].concat(D.sectors),leadSector)+'</select></div><div id="leadResults">'+leadResults()+'</div>';
+    html+='<div class="panel"><div class="panel-head"><div><h2>Une conversation, puis un rendez-vous.</h2><p>Le premier appel sert à comprendre le besoin et obtenir 15 à 20 minutes d’échange.</p></div>'+btn('Scripts & objections','scripts',undefined,'small secondary')+'</div><p class="muted small-text">Repère quotidien : 8 nouveaux contacts et 4 relances. Consigne chaque démarche, même si tu n’as pas eu de réponse.</p></div>';return html;
+  }
+  function leadResults() {
+    var term=leadSearch.toLowerCase();var list=state.leads.filter(function(l){return (leadFilter==='Tous'||l.status===leadFilter||(leadFilter==='À relancer'&&l.nextDate&&l.nextDate<=today()&&activeLead(l)))&&(leadSector==='Tous'||l.sector===leadSector)&&(l.name+' '+l.contact+' '+l.city).toLowerCase().indexOf(term)>=0;});
+    if(!list.length)return '<div class="panel">'+empty(state.leads.length?'Aucun contact pour ces filtres.':'Ton carnet de contacts est prêt.',state.leads.length?'Modifie ta recherche.':'Importe ton dossier personnel ou ajoute ton premier prospect.',state.leads.length?'':btn('Ajouter un contact','lead-new',undefined,'secondary'))+'</div>';
+    return '<div class="panel"><div class="table-wrap"><table class="data-table"><thead><tr><th>Entreprise / contact</th><th>Avancement</th><th>Prochaine action</th><th class="num">Potentiel</th><th></th></tr></thead><tbody>'+list.map(function(l){return '<tr><td><button class="lead-name" data-action="lead-open" data-id="'+esc(l.id)+'"><strong>'+esc(l.name)+'</strong><small>'+esc(l.contact||l.city||l.sector)+(l.priority==='Haute'?' · Prioritaire':'')+'</small></button></td><td>'+badge(l.status)+'</td><td><span class="'+(l.nextDate&&l.nextDate<today()?'overdue':'')+'">'+esc(l.nextDate?dateLabel(l.nextDate,true):'Date à fixer')+'</span><small>'+esc(l.nextAction||'Définir la suite')+'</small></td><td class="num">'+(l.amount?money(l.amount):'—')+'</td><td class="row-actions">'+btn('Noter','lead-log',l.id,'small secondary')+'</td></tr>';}).join('')+'</tbody></table></div></div>';
+  }
+  function openModal(title,html,narrow) {lastFocus=document.activeElement;get('modalRoot').innerHTML='<div class="modal-backdrop"><section class="modal'+(narrow?' narrow':'')+'" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><div class="modal-header"><h2 id="modalTitle">'+esc(title)+'</h2><button type="button" class="icon-button" aria-label="Fermer" data-action="close">'+icon('close')+'</button></div>'+html+'</section></div>';document.body.classList.add('modal-open');var first=get('modalRoot').querySelector('input,select,textarea,button');if(first)first.focus();}
+  function closeModal() {get('modalRoot').innerHTML='';document.body.classList.remove('modal-open');if(lastFocus&&document.body.contains(lastFocus))lastFocus.focus();}
+  function leadForm(id) {var l=find(state.leads,id)||{id:'',name:'',sector:D.sectors[0],contact:'',city:'',phone:'',email:'',status:'À contacter',priority:'Normale',offer:'',amount:0,nextDate:'',nextAction:'',notes:''};openModal(l.id?'Modifier le contact':'Nouveau contact','<form data-form="lead" data-id="'+esc(l.id)+'"><div class="form-grid">'+input('name','Entreprise / structure',l.name,'text','required maxlength="160"')+input('contact','Interlocuteur',l.contact,'text','maxlength="160"')+select('sector','Secteur',D.sectors,l.sector)+input('city','Ville',l.city,'text','maxlength="120"')+input('phone','Téléphone',l.phone,'tel','maxlength="40"')+input('email','E-mail',l.email,'email','maxlength="200"')+select('status','Statut',D.statuses,l.status)+select('priority','Priorité',['Haute','Normale','Basse'],l.priority)+input('offer','Offre à évoquer',l.offer,'text','maxlength="160"')+input('amount','Potentiel estimé (€)',l.amount,'number','min="0" max="1000000" step="0.01"')+input('nextDate','Prochaine échéance',l.nextDate,'date')+input('nextAction','Prochaine action',l.nextAction,'text','maxlength="250"')+'</div>'+area('notes','Contexte et notes',l.notes,4,'maxlength="15000"')+actions()+'</form>');}
+  function leadOpen(id) {var l=find(state.leads,id);if(!l)return;var tel=l.phone.replace(/[^+\d]/g,'');openModal(l.name,'<p class="modal-subtitle">'+esc(l.contact||l.sector)+(l.city?' · '+esc(l.city):'')+'</p><div class="panel"><div class="panel-head"><div>'+badge(l.status)+' '+badge(l.priority==='Haute'?'Prioritaire':l.sector)+'</div>'+btn('Modifier','lead-edit',l.id,'small secondary','edit')+'</div><p><strong>'+esc(l.nextAction||'Définir la prochaine action')+'</strong><br><small class="muted">'+(l.nextDate?dateLabel(l.nextDate):'Aucune échéance')+'</small></p><p class="pre-wrap small-text">'+esc(l.notes||'Aucune note pour le moment.')+'</p><div class="head-actions" style="margin-left:0">'+(tel?'<a class="button secondary" href="tel:'+esc(tel)+'">'+icon('phone')+'Appeler</a>':'')+(l.email?'<a class="button secondary" href="mailto:'+esc(l.email)+'">'+icon('mail')+'E-mail</a>':'')+btn('Compte rendu','lead-log',l.id,'','plus')+'</div></div><div class="panel"><div class="panel-head"><h2>Ton amorce de conversation</h2>'+btn('Copier','copy-script',l.id,'small secondary','copy')+'</div><p class="script">'+esc(scriptFor(l.sector))+'</p>'+btn('Répondre aux objections','scripts',l.id,'small secondary')+'</div><div class="panel"><div class="panel-head"><h2>Historique des échanges</h2></div>'+(l.history.length?l.history.slice().reverse().map(function(h){return '<div class="log-item"><time>'+esc(h.date.slice(0,10)+' · '+h.channel)+'</time><strong>'+esc(h.result)+'</strong><p>'+esc(h.note)+'</p>'+(h.nextAction?'<small class="muted">Suite : '+esc(h.nextAction)+(h.nextDate?' · '+dateLabel(h.nextDate,true):'')+'</small>':'')+'</div>';}).join(''):'<p class="muted small-text">Les prochains comptes rendus apparaîtront ici.</p>')+'</div><div class="form-actions">'+btn('Supprimer ce contact','lead-delete',l.id,'danger')+btn('Préparer un devis','quote-for-lead',l.id,'secondary')+'</div>');}
+  function logForm(id) {var l=find(state.leads,id);if(!l)return;openModal('Compte rendu · '+l.name,'<p class="modal-subtitle">20 à 30 secondes pour garder une trace exploitable.</p><form data-form="log" data-id="'+esc(l.id)+'"><div class="form-grid">'+select('channel','Canal',['Téléphone','E-mail','Instagram','En personne','Visio'], 'Téléphone')+select('result','Résultat',['Non joint','Échange réalisé','Mail demandé','Rendez-vous fixé','Devis demandé','À rappeler','Refus'],'Échange réalisé')+'</div>'+area('note','Ce qui a été dit / fait','',3,'required maxlength="5000" placeholder="Besoin, délai, objection, décision…"')+'<div class="form-grid">'+select('status','Statut après cet échange',D.statuses,l.status==='À contacter'?'Contacté':l.status)+input('nextDate','Échéance suivante',l.nextDate||shiftDate(today(),3),'date')+'</div>'+input('nextAction','Prochaine action',l.nextAction,'text','required maxlength="250" placeholder="Ex. rappeler avec deux dates de rendez-vous"')+actions('Enregistrer le compte rendu')+'</form>');}
+  function scriptFor(sector) {return state.resources.scripts[sector]||state.resources.scripts.Autre||D.scripts[sector]||D.scripts.Autre;}
+  function scriptsModal(id) {var l=find(state.leads,id),sector=l?l.sector:D.sectors[0];openModal('Le rendez-vous, en quelques phrases.','<p class="modal-subtitle">Ton objectif : comprendre le besoin, identifier le décideur et convenir de la suite.</p><div class="panel"><p class="script">'+esc(scriptFor(sector))+'</p><p class="small-text muted">À demander : votre priorité ? Pour quand ? Pour quels canaux ? Qui valide ? Quelle enveloppe avez-vous prévue ?</p></div><div class="panel"><h3>Les objections les plus fréquentes</h3>'+D.objections.map(function(o){return '<details class="objection"><summary>'+esc(o[0])+'</summary><p>'+esc(o[1])+'</p></details>';}).join('')+'</div>');}
+  function quoteBase() {return {id:'',leadId:'',client:'',title:'Film de présentation',scope:state.offers[0].deliverables,status:'Brouillon',acceptedDate:'',prep:1,shoot:4,edit:7,admin:1,travel:1,basePrice:state.offers[0].normal,km:0,kmRate:state.profile.kmRate,billedCosts:0,costs:0,reserve:state.profile.reserve,target:state.profile.hourlyTarget,price:state.offers[0].normal,notes:'',createdAt:today()};}
+  function quoteValues(form) {var q=clone(quoteDraft||quoteBase());['client','title','scope','status','acceptedDate','notes'].forEach(function(k){q[k]=value(form,k);});['prep','shoot','edit','admin','travel','basePrice','km','kmRate','billedCosts','costs','reserve','target'].forEach(function(k){q[k]=num(value(form,k));});q.price=q.basePrice+q.km*q.kmRate+q.billedCosts;return q;}
+  function math(q) {var h=q.prep+q.shoot+q.edit+q.admin+q.travel, provision=q.price*q.reserve/100, available=q.price-provision-q.costs;return {hours:h,available:available,hourly:h?available/h:0,provision:provision,floor:q.reserve<100?(h*q.target+q.costs)/(1-q.reserve/100):0};}
+  function renderQuotes() {
+    var html=head('VENDRE AU JUSTE PRIX','Des offres, et des chiffres clairs.','Garde ton objectif de '+money(state.profile.hourlyTarget)+'/h en vue, en comptant tout le travail.',btn('Nouveau chiffrage','quote-new',undefined,'','plus'));
+    html+='<div class="chips">'+[['offers','Les 3 offres'],['calculator','Calculateur'],['saved','Mes chiffrages ('+state.quotes.length+')']].map(function(a){return '<button class="chip'+(quoteTab===a[0]?' active':'')+'" data-action="quote-tab" data-id="'+a[0]+'">'+esc(a[1])+'</button>';}).join('')+'</div>';
+    if(quoteTab==='offers') {
+      html+='<div class="notice-inline">Grille de travail à personnaliser. Les montants sont à renseigner ou à importer depuis ton dossier. Montants et périmètres modifiables avant proposition au client. Les tarifs fondateurs doivent rester compatibles avec ton temps réel.</div><div class="grid-three section-space">'+state.offers.map(function(o,i){return '<section class="panel offer-card"><div class="offer-no">0'+(i+1)+'</div><h2 class="offer-title">'+esc(o.name)+'</h2><p class="offer-details">'+esc(o.desc)+'</p><div class="offer-price">'+(o.normal?money(o.normal):'À définir')+'</div><div class="offer-founders">Tarif fondateur · '+(o.founder?money(o.founder):'À définir')+'</div><p class="small-text muted">'+esc(o.deliverables)+'</p>'+btn('Chiffrer cette offre','quote-offer',o.id,'wide secondary')+btn('Modifier la grille','offer-edit',o.id,'small subtle')+'</section>';}).join('')+'</div><div class="panel"><h2>Avant d’envoyer dans Henrri</h2><p class="muted small-text">Précise le lieu, la durée du tournage, les livrables, les formats, les retours inclus, les droits et les déplacements. Le récapitulatif MF Tools est une préparation interne ; ton devis final reste dans Henrri.</p></div>';
+    } else if(quoteTab==='calculator') {
+      if(!quoteDraft)quoteDraft=quoteBase();var q=quoteDraft;
+      html+='<form id="quoteForm" data-form="quote"><div class="grid-two"><section class="panel"><h2>Le périmètre de la mission</h2><div class="form-grid">'+input('client','Client',q.client,'text','required maxlength="160"')+input('title','Prestation',q.title,'text','required maxlength="180"')+'</div>'+area('scope','Livrables et périmètre',q.scope,3,'maxlength="5000"')+'<hr class="divider"><h3>Tout ton temps compte</h3><div class="form-grid three">'+input('prep','Préparation (h)',q.prep,'number','min="0" max="10000" step="0.25" required')+input('shoot','Tournage (h)',q.shoot,'number','min="0" max="10000" step="0.25" required')+input('edit','Montage (h)',q.edit,'number','min="0" max="10000" step="0.25" required')+input('admin','Vente / administratif (h)',q.admin,'number','min="0" max="10000" step="0.25" required')+input('travel','Trajet aller-retour (h)',q.travel,'number','min="0" max="10000" step="0.25" required')+input('target','Objectif disponible / h (€)',q.target,'number','min="1" max="10000" step="1" required')+'</div><hr class="divider"><h3>Le prix et les frais</h3><div class="form-grid">'+input('basePrice','Prestation facturée (€)',q.basePrice,'number','min="0" max="10000000" step="0.01" required')+input('billedCosts','Autres frais facturés (€)',q.billedCosts,'number','min="0" max="1000000" step="0.01" required')+input('km','Kilomètres AR à facturer',q.km,'number','min="0" max="100000" step="1" required')+input('kmRate','Prix au kilomètre (€)',q.kmRate,'number','min="0" max="100" step="0.01" required')+input('costs','Tes coûts réels estimés (€)',q.costs,'number','min="0" max="10000000" step="0.01" required','Transport, location, musique, sous-traitance, part de frais fixes…')+input('reserve','Provision de simulation (%)',q.reserve,'number','min="0" max="95" step="0.1" required','Hypothèse personnalisable ; ce n’est pas un taux légal.')+'</div></section><div><section class="result-box" id="calcResults"></section><section class="panel" style="margin-top:20px"><h3>Suivi du chiffrage</h3><div class="form-grid">'+select('status','Statut',['Brouillon','Envoyé','Accepté','Refusé'],q.status)+input('acceptedDate','Date d’acceptation',q.acceptedDate,'date')+'</div>'+area('notes','Conditions / points à confirmer',q.notes,3,'maxlength="5000"')+'<p class="help">Les devis acceptés sont comptés dans l’objectif du mois de leur acceptation. Cela ne représente pas un encaissement.</p><button type="submit" class="button wide">Enregistrer le chiffrage</button><div style="margin-top:8px">'+btn('Récapitulatif imprimable','quote-print',undefined,'wide secondary','print')+'</div></section></div></div></form>';
+    } else {
+      html+='<div class="panel">'+(state.quotes.length?'<div class="table-wrap"><table class="data-table"><thead><tr><th>Client / prestation</th><th>Statut</th><th>Total</th><th>Disponible / h</th><th></th></tr></thead><tbody>'+state.quotes.map(function(q){var m=math(q);return '<tr><td><strong>'+esc(q.client)+'</strong><small>'+esc(q.title)+'</small></td><td>'+badge(q.status,q.status==='Accepté'?'green':'')+'<small>'+esc(q.acceptedDate||q.createdAt)+'</small></td><td>'+money(q.price)+'</td><td class="'+(m.hourly<q.target?'overdue':'')+'">'+money(m.hourly)+'</td><td>'+btn('Ouvrir','quote-open',q.id,'small secondary')+'</td></tr>';}).join('')+'</tbody></table></div>':empty('Le prochain devis se prépare ici.','Évalue ton temps et tes frais avant de proposer un prix.',btn('Chiffrer une mission','quote-new',undefined,'secondary')))+'</div>';
+    }return html;
+  }
+  function updateCalc() {var f=get('quoteForm');if(!f)return;var q=quoteValues(f),m=math(q),good=m.hourly>=q.target;get('calcResults').innerHTML='<div class="kicker" style="color:var(--amber)">TOTAL À FACTURER</div><div class="big">'+money(q.price)+'</div><div class="result-line"><span>Temps total réel</span><strong>'+m.hours.toLocaleString('fr-FR')+' h</strong></div><div class="result-line"><span>Provision de simulation</span><strong>'+money(m.provision)+'</strong></div><div class="result-line"><span>Coûts estimés</span><strong>'+money(q.costs)+'</strong></div><div class="result-line"><span>Disponible estimé avant IR</span><strong>'+money(m.available)+'</strong></div><div class="result-line"><span>Disponible estimé / heure</span><strong>'+money(m.hourly)+'</strong></div><div class="result-alert'+(good?'':' bad')+'">'+(m.hours===0?'Renseigne le temps total pour évaluer la rentabilité.':good?'Objectif horaire atteint avec ces hypothèses.':'Sous ton objectif de '+money(q.target)+'/h.')+'<br><strong>Prix total nécessaire : '+money(m.floor)+'</strong></div><p class="muted small-text" style="margin-top:15px;margin-bottom:0">(Prix − provision sur le prix − coûts) ÷ toutes les heures. Estimation interne avant impôt sur le revenu ; complète tes frais pour affiner.</p>';}
+  function offerForm(id) {var o=find(state.offers,id);if(!o)return;openModal('Ajuster '+o.name,'<form data-form="offer" data-id="'+esc(id)+'">'+input('name','Nom',o.name,'text','required maxlength="140"')+'<div class="form-grid">'+input('normal','Tarif normal (€)',o.normal,'number','min="0" step="0.01" required')+input('founder','Tarif fondateur (€)',o.founder,'number','min="0" step="0.01" required')+'</div>'+area('desc','Description',o.desc,3,'maxlength="3000"')+area('deliverables','Livrables',o.deliverables,3,'maxlength="3000"')+actions()+'</form>');}
+  function projectForm(id) {var p=find(state.projects,id)||project('','','Film vitrine'),fresh=!find(state.projects,id);openModal(fresh?'Préparer un tournage':'Modifier le tournage','<form data-form="project" data-id="'+(fresh?'':esc(p.id))+'"><div class="form-grid">'+input('name','Nom du projet',fresh?'':p.name,'text','required maxlength="160"')+input('client','Client / contact',p.client,'text','maxlength="160"')+select('type','Type de tournage',D.projectTypes,p.type)+select('status','Avancement',D.stages,p.status)+input('date','Date',p.date,'date')+input('time','Heure',p.time,'time')+input('location','Lieu',p.location,'text','maxlength="250"')+select('format','Format de livraison',['16:9','9:16','16:9 + 9:16','Photo'],p.format)+'</div>'+area('brief','Objectif, message, public',p.brief,3,'maxlength="6000"')+area('deliverables','Livrables convenus',p.deliverables,2,'maxlength="3000"')+(fresh?'<p class="help">Une shotlist et des checklists seront créées selon le type de tournage.</p>':'<p class="help">Tes plans cochés restent conservés si tu modifies le type.</p>')+actions(fresh?'Créer le dossier':'Enregistrer')+'</form>');}
+  function checkList(items,scope,id,kind,removable) {return items.map(function(c,i){return '<div class="checkrow"><label class="'+(c.d?'checked':'')+'"><input type="checkbox" '+(c.d?'checked ':'')+'data-check="'+scope+'" data-id="'+esc(id||'')+'" data-kind="'+kind+'" data-index="'+i+'"><span>'+esc(c.t)+'</span></label>'+(removable?'<button class="icon-button" type="button" aria-label="Supprimer '+esc(c.t)+'" data-action="check-delete" data-scope="'+scope+'" data-id="'+esc(id||'')+'" data-kind="'+kind+'" data-index="'+i+'">'+icon('close')+'</button>':'')+'</div>';}).join('');}
+  function checkAdder(scope,id,kind,label) {return '<form class="inline-add" data-form="check-add" data-scope="'+scope+'" data-id="'+esc(id||'')+'" data-kind="'+kind+'"><input name="text" required maxlength="500" aria-label="'+esc(label||'Nouvel élément')+'" placeholder="'+esc(label||'Ajouter un élément')+'"><button class="button secondary" type="submit" aria-label="Ajouter">'+icon('plus')+'</button></form>';}
+  function renderProjects() {
+    var p=find(state.projects,selectedProject);if(p)return projectDetail(p);
+    var html=head('PRÉPARER, TOURNER, LIVRER','Tes projets, de A à Z.','Chaque tournage possède son brief, sa shotlist, son matériel et son suivi de livraison.',btn('Nouveau tournage','project-new',undefined,'','plus'));
+    if(!state.projects.length)return html+'<div class="panel">'+empty('Une préparation adaptée à chaque mission.','Film vitrine, artisan, patrimoine, événement, immobilier ou Media Day.',btn('Créer mon premier dossier','project-new',undefined,'secondary'))+'</div>';
+    return html+'<div class="grid-three">'+state.projects.map(function(p){var n=countDone(p.shots);return '<section class="panel project-card"><div>'+badge(p.type)+(p.status==='Livré'?' '+badge('Livré','green'):'')+'</div><h3>'+esc(p.name)+'</h3><p>'+esc(p.client||p.brief||'Brief à compléter')+'</p><div class="project-meta"><span>'+dateLabel(p.date,true)+'</span><span>'+esc(p.format)+'</span></div><div class="small-text muted">'+n+' / '+p.shots.length+' plans cochés · '+esc(p.status)+'</div>'+progress(n,p.shots.length)+btn('Ouvrir le dossier','project-open',p.id,'wide secondary','arrow')+'</section>';}).join('')+'</div>';
+  }
+  function projectDetail(p) {
+    var html='<button class="text-button" data-action="projects-back">← Tous les tournages</button>'+head(p.type,p.name,p.client+(p.location?' · '+p.location:''),btn('Imprimer','project-print',p.id,'secondary','print')+btn('Modifier','project-edit',p.id,'','edit'));
+    html+=projectPreparation(p)+formationShortcut('567c8fe5-cdd3-45b7-885a-bb918a9ee809','Film + Reels · retrouver la méthode complète');
+    html+='<div class="panel"><div class="panel-head"><div>'+badge(p.status)+' '+badge(p.format)+' <span class="muted small-text">'+dateLabel(p.date)+' '+esc(p.time)+'</span></div></div><p class="pre-wrap">'+esc(p.brief||'Complète le brief pour fixer l’objectif de ce film.')+'</p><p class="small-text muted"><strong>Livrables :</strong> '+esc(p.deliverables||'À convenir avec le client')+'</p></div><div class="grid-two section-space"><section class="panel"><div class="panel-head"><h2>La shotlist</h2><span class="check-progress" id="projectProgress">'+countDone(p.shots)+' / '+p.shots.length+'</span></div>'+checkList(p.shots,'project',p.id,'shots',true)+checkAdder('project',p.id,'shots','Ajouter un plan précis')+'</section><section class="panel"><h2>Le déroulé</h2><form data-form="project-notes" data-id="'+esc(p.id)+'">'+area('plan','Horaires et séquences',p.plan,9,'placeholder="09:00 · Installation et test son\n09:30 · Interview\n10:15 · Images d’illustration…" maxlength="15000"')+area('notes','Notes de terrain / prises à garder',p.notes,5,'maxlength="15000"')+'<button type="submit" class="button secondary wide">Enregistrer mes notes</button></form><div class="divider"></div><p class="small-text muted">Prévois trois tailles de plan par action : large, moyen, serré. Garde quelques secondes stables avant et après le mouvement.</p>'+btn('Créer une interview liée','interview-project',p.id,'wide secondary','mic')+'</section></div><div class="grid-equal section-space"><section class="panel"><div class="panel-head"><h2>Matériel de cette mission</h2></div>'+checkList(p.gear,'project',p.id,'gear',true)+checkAdder('project',p.id,'gear','Ajouter au kit')+'</section><section class="panel"><div class="panel-head"><h2>Montage & livraison</h2></div>'+checkList(p.delivery,'project',p.id,'delivery',true)+checkAdder('project',p.id,'delivery','Ajouter une étape')+'</section></div><div class="panel"><h2>Drone · préparation de la mission</h2><p class="small-text muted">À utiliser si le projet comporte des plans aériens. Les vérifications de terrain restent propres au lieu et au vol.</p>'+checkList(p.drone,'project',p.id,'drone',false)+'<form data-form="project-drone" data-id="'+esc(p.id)+'">'+area('notes','Lieu, démarches, restrictions, repérage',p.droneNotes,3,'maxlength="10000"')+'<button class="button secondary" type="submit">Enregistrer</button></form><a href="#field" class="text-button">Ouvrir les repères terrain et sources officielles ↗</a></div><div class="form-actions">'+btn('Supprimer le projet','project-delete',p.id,'danger')+btn('Dupliquer pour une autre mission','project-duplicate',p.id,'secondary')+'</div>';return html;
+  }
+  function renderReels() {
+    var it=find(state.interviews,selectedInterview);if(!it&&state.interviews.length){it=state.interviews[0];selectedInterview=it.id;}
+    var html=head('LA MÉTHODE INTERVIEW + IMAGES','Une interview. Huit histoires.','Une question par Reel, une réponse claire et des images qui la rendent concrète.',btn('Nouvelle interview','interview-new',undefined,'','plus'));
+    html+=formationShortcut('7bd9cf93-113c-4d49-8b03-c0d0630aab9d','Choisir les sujets · visibilité, confiance, prise de contact');
+    if(!it)return html+'<div class="panel">'+empty('Prépare tes sujets avant de filmer.','Huit questions, des accroches et une liste d’images à tourner, personnalisables pour chaque client.',btn('Créer une interview','interview-new',undefined,'secondary'))+'</div>';
+    html+='<div class="filters"><select id="interviewSelect" aria-label="Choisir l’interview">'+opts(state.interviews.map(function(i){return [i.id,i.name];}),it.id)+'</select>'+btn('Modifier','interview-edit',it.id,'small secondary')+btn('Imprimer','interview-print',it.id,'small secondary','print')+'</div><div class="grid-two section-space"><div class="panel"><h2>Le déroulé d’une demi-journée</h2>'+[['00:00','Installation & son','Cadre, exposition, balance des blancs, test enregistré.'],['00:30','Interview guidée','Une question à la fois ; reprendre la question dans la réponse.'],['01:30','Images d’illustration','Reprendre chaque sujet et filmer ce qui prouve la réponse.'],['03:15','Compléments & contrôle','Plans manquants, accroches alternatives, sons et sauvegarde.']].map(function(a){return '<div class="pitch-step"><span class="step-num mono">'+a[0]+'</span><div><strong>'+a[1]+'</strong><span class="muted">'+a[2]+'</span></div></div>';}).join('')+'</div><div class="panel"><h2>'+esc(it.name)+'</h2><p class="muted small-text">Repère de travail : les durées se règlent selon le client et le nombre de sujets. Prévoir un son exploitable avant de lancer l’interview.</p><div class="script">Accroche → réponse → preuve → appel à l’action.</div><div class="tag-list">'+badge('TOFU · se faire connaître')+badge('MOFU · donner confiance','blue')+badge('BOFU · déclencher un contact','amber')+'</div><p class="small-text pre-wrap">'+esc(it.notes)+'</p>'+btn('Ajouter une question','question-new',it.id,'secondary','plus')+'</div></div>';
+    html+=it.questions.map(function(q,i){return '<section class="reel-card"><div class="reel-top"><span class="kicker" style="margin:0">REEL '+pad(i+1)+'</span>'+badge(q.stage,q.stage==='BOFU'?'amber':q.stage==='MOFU'?'blue':'')+'</div><h3>'+esc(q.q)+'</h3><p class="small-text"><strong>Accroche :</strong> '+esc(q.hook||'À écrire avec les mots du client.')+'</p><p class="small-text muted"><strong>Images :</strong> '+esc(q.broll||'À prévoir.')+'</p>'+(q.cta?'<p class="small-text muted"><strong>CTA :</strong> '+esc(q.cta)+'</p>':'')+(q.timecode?'<p class="small-text mono">Repère rush : '+esc(q.timecode)+'</p>':'')+'<div class="pipeline">'+[['interview','Réponse filmée'],['illustration','Images tournées'],['edited','Monté'],['delivered','Livré']].map(function(x){return '<label><input type="checkbox" data-reel="'+x[0]+'" data-id="'+esc(it.id)+'" data-question="'+esc(q.id)+'" '+(q[x[0]]?'checked':'')+'>'+x[1]+'</label>';}).join('')+'</div><div style="margin-top:10px">'+btn('Notes, accroche & timecode','question-edit',it.id+'|'+q.id,'small subtle')+'</div></section>';}).join('');return html;
+  }
+  function interviewForm(id,projectId) {var it=find(state.interviews,id),p=find(state.projects,projectId);openModal(it?'Modifier l’interview':'Nouvelle interview','<form data-form="interview" data-id="'+esc(it?it.id:'')+'" data-project="'+esc(projectId||(it?it.projectId:''))+'">'+input('name','Client / sujet',it?it.name:p?p.name:'','text','required maxlength="160"')+area('notes','Intention, message, contraintes',it?it.notes:'',4,'maxlength="8000"')+actions(it?'Enregistrer':'Créer les 8 sujets')+'</form>',true);}
+  function questionForm(interviewId,qid) {var it=find(state.interviews,interviewId);if(!it)return;var q=find(it.questions,qid)||{id:'',q:'',stage:'MOFU',hook:'',broll:'',cta:'',timecode:''};openModal(q.id?'Préparer ce Reel':'Ajouter un sujet','<form data-form="question" data-id="'+esc(interviewId)+'" data-question="'+esc(q.id)+'">'+area('q','Question posée',q.q,2,'required maxlength="1000"')+'<div class="form-grid">'+select('stage','Rôle',['TOFU','MOFU','BOFU'],q.stage)+input('timecode','Timecode / nom du fichier',q.timecode,'text','maxlength="160"')+'</div>'+area('hook','Accroche',q.hook,2,'maxlength="1500"')+area('broll','Images à tourner',q.broll,3,'maxlength="3000"')+input('cta','Appel à l’action',q.cta,'text','maxlength="1000"')+actions()+'</form>'+(q.id?btn('Supprimer ce sujet','question-delete',interviewId+'|'+q.id,'small danger'):'') );}
+  function renderMedia() {
+    var m=find(state.media,selectedMedia);if(!m&&state.media.length){m=state.media[0];selectedMedia=m.id;}
+    var html=head('PHOTOGRAPHIER UNE ÉQUIPE','Un joueur. Six poses. Rien d’oublié.','Une grille tactile pour suivre les photos prises, joueur par joueur.',btn('Nouvelle séance','media-new',undefined,'','plus'));
+    if(!m)return html+'<div class="panel">'+empty('Prépare ton prochain Media Day.','Crée la séance, puis colle la liste des joueurs.',btn('Créer une séance','media-new',undefined,'secondary'))+'</div>';
+    var done=0;m.players.forEach(function(p){done+=p.poses.filter(Boolean).length;});
+    html+='<div class="filters"><select id="mediaSelect" aria-label="Séance Media Day">'+opts(state.media.map(function(x){return [x.id,x.name];}),m.id)+'</select>'+btn('Modifier la séance','media-edit',m.id,'small secondary')+btn('Imprimer la grille','media-print',m.id,'small secondary','print')+btn('Ajouter des joueurs','players-add',m.id,'small','plus')+'</div><div class="panel"><div class="roster-progress"><h2>'+esc(m.name)+'</h2><span class="check-progress" id="mediaProgress">'+done+' / '+(m.players.length*6)+' photos</span></div>'+progress(done,m.players.length*6)+'<p class="muted small-text">'+dateLabel(m.date)+' · '+m.players.length+' joueurs · coche uniquement les prises vérifiées.</p>';
+    html+=m.players.length?'<div class="table-wrap"><table class="data-table pose-table"><thead><tr><th class="player-col">Joueur</th>'+D.poses.map(function(p){return '<th>'+esc(p)+'</th>';}).join('')+'</tr></thead><tbody>'+m.players.map(function(p){return '<tr><td>'+btn(p.name,'player-edit',m.id+'|'+p.id,'small subtle')+'<small>'+esc((p.number?'N° '+p.number+' · ':'')+(p.file||'Repère fichier à noter'))+'</small></td>'+D.poses.map(function(pose,i){return '<td><input type="checkbox" aria-label="'+esc(p.name+' · '+pose)+'" data-pose="'+i+'" data-id="'+esc(m.id)+'" data-player="'+esc(p.id)+'" '+(p.poses[i]?'checked':'')+'></td>';}).join('')+'</tr>';}).join('')+'</tbody></table></div>':empty('La liste de l’équipe est vide.','Ajoute plusieurs noms en une seule fois.',btn('Ajouter les joueurs','players-add',m.id,'secondary'));
+    html+='</div><div class="grid-equal"><div class="panel"><h2>Les repères du shooting</h2><div class="checkrow">Portrait buste · regard caméra, épaules ouvertes.</div><div class="checkrow">Plein pied · pieds, mains et ballon dans le cadre.</div><div class="checkrow">Template · laisse de la marge et décolle les bras du corps.</div><div class="checkrow">Garde le même emplacement au sol pour chaque joueur.</div><div class="checkrow">Vérifie les yeux, la netteté et le cadrage avant de passer au suivant.</div><a class="text-button" href="#field" data-action="flash-nav">Réglages et plan d’éclairage ↗</a></div><div class="panel"><h2>Notes de séance</h2><form data-form="media-notes" data-id="'+esc(m.id)+'">'+area('notes','Organisation, groupes, fichiers, retouches',m.notes,8,'maxlength="15000"')+'<button class="button secondary" type="submit">Enregistrer</button></form><p class="help">Prévois les accords nécessaires pour l’utilisation des images, notamment pour les mineurs.</p></div></div>';return html;
+  }
+  function mediaForm(id) {var m=find(state.media,id);openModal(m?'Modifier la séance':'Nouvelle séance Media Day','<form data-form="media" data-id="'+esc(m?m.id:'')+'">'+input('name','Équipe / séance',m?m.name:'','text','required maxlength="160"')+input('date','Date',m?m.date:'','date')+area('notes','Organisation',m?m.notes:'',3,'maxlength="15000"')+actions()+'</form>',true);}
+  function studioDiagram() {return '<div class="diagram-box"><svg class="studio-svg" viewBox="0 0 500 330" role="img" aria-label="Vue de dessus : fond derrière le joueur, flash décalé à 45 degrés à gauche, appareil face au joueur."><defs><marker id="arr" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto-start-reverse"><path d="M0 0 6 3 0 6" fill="#a26326"/></marker></defs><path d="M90 34H410" stroke="#67705d" stroke-width="9" stroke-linecap="round"/><text x="250" y="20" text-anchor="middle" font-size="12" fill="#66705a">FOND</text><path d="M278 46V111" stroke="#a26326" stroke-dasharray="4 4"/><text x="288" y="78" font-size="11" fill="#8e632e">1,5–2 m</text><circle cx="250" cy="135" r="21" fill="#333e2b"/><text x="250" y="140" text-anchor="middle" fill="#f6f1e5" font-size="12">J</text><text x="285" y="140" fill="#4e5a42" font-size="12">Joueur</text><path d="M110 245 223 158" stroke="#bc8d4b" stroke-width="2" stroke-dasharray="6 4"/><path d="M90 225 115 200 140 225 115 250Z" fill="#e8ba7b" stroke="#a26326"/><text x="55" y="280" font-size="12" fill="#805521">Flash à 45°</text><text x="38" y="298" font-size="10" fill="#7b796a">Hauteur : 2–2,2 m · incliné</text><text x="112" y="173" font-size="11" fill="#805521">1,5–2,5 m</text><path d="M250 166V271" stroke="#a1aa94" stroke-dasharray="5 5"/><text x="270" y="222" font-size="11" fill="#69745c">Environ 3–5 m*</text><rect x="230" y="279" width="40" height="28" rx="5" fill="#59664c"/><circle cx="250" cy="293" r="8" fill="#ecefe6"/><text x="250" y="324" font-size="11" text-anchor="middle" fill="#4e5a42">Caméra</text></svg></div>';}
+  function renderField() {
+    var html=head('LES REPÈRES SUR LE TERRAIN','Prêt avant de partir.','Ton matériel, tes réglages et tes vérifications au même endroit.');
+    html+='<div class="chips">'+[['gear','Matériel'],['camera','Caméra & smartphone'],['flash','Flash / studio'],['drone','Drone']].map(function(a){return '<button class="chip'+(fieldTab===a[0]?' active':'')+'" data-action="field-tab" data-id="'+a[0]+'">'+a[1]+'</button>';}).join('')+'</div>';
+    if(fieldTab==='gear')html+='<div class="panel"><div class="panel-head"><div><h2>Mon kit de départ</h2><p>Checklist générale. Chaque tournage possède aussi sa propre liste.</p></div>'+btn('Décocher','checks-reset','gear','small secondary')+'</div>'+checkList(state.gear,'global','','gear',true)+checkAdder('global','','gear','Ajouter du matériel')+'</div><div class="field-note">Les micros, le flash et le trépied sont des éléments à confirmer pour la mission, pas une liste d’achats.</div>';
+    if(fieldTab==='camera')html+='<div class="grid-equal"><div class="panel"><h2>Avant d’enregistrer</h2><div class="checkrow">Choisir la cadence et le format selon la livraison.</div><div class="checkrow">Contrôler exposition, balance des blancs et mise au point.</div><div class="checkrow">Vérifier le scintillement des éclairages sur un fichier enregistré.</div><div class="checkrow">Écouter un test du micro réellement utilisé.</div><div class="checkrow">Contrôler espace disponible, alimentation et stabilité.</div><p class="help">Les réglages précis dépendent du modèle, de la lumière et de la mission.</p></div><div class="panel"><h2>Mon matériel et mes repères</h2><p class="small-text muted">Ton dossier personnel peut compléter ces notes avec les modèles et réglages de ton matériel.</p><form data-form="terrain-resources">'+area('terrain','Notes de référence',state.resources.terrain,16,'maxlength="20000" placeholder="Modèles, réglages testés, références de manuels…"')+'<button class="button secondary" type="submit">Enregistrer mes repères</button></form></div></div>';
+    if(fieldTab==='flash')html+='<div class="grid-two"><div class="panel"><h2>Media Day · un flash</h2><p class="muted small-text">Vue de dessus · implantation de départ à tester.</p>'+studioDiagram()+'<p class="help">* Adapte le recul au plein pied, à la focale et à la salle. Pour un fond blanc facile à détourer, contrôle le contraste autour des cheveux, des mains et du maillot sans surexposer le sujet.</p><p class="small-text">Choisis une vitesse compatible avec la synchronisation de ton appareil. Ajuste la puissance du flash après une photo test. La puissance dépend du modeleur, de la distance et du résultat voulu.</p></div><div class="panel"><h2>Mes réglages testés</h2><form data-form="flash"><div class="form-grid">'+select('iso','ISO',['100','200','400','800','1600'],state.flash.iso)+select('aperture','Ouverture',['f/2.8','f/4','f/5.6','f/8','f/11'],state.flash.aperture)+select('shutter','Vitesse',['1/60','1/100','1/125','1/160','1/200 (repris de V1)'],state.flash.shutter==='1/200'?'1/200 (repris de V1)':state.flash.shutter)+input('distance','Distance flash / sujet (m)',state.flash.distance,'number','min="0.3" max="20" step="0.1"')+'</div>'+area('notes','Flash, modeleur, puissance et résultats',state.flash.notes,6,'placeholder="Ex. modèle du flash, softbox, puissance testée, fond…" maxlength="7000"')+'<button class="button wide" type="submit">Mémoriser ces réglages</button></form><hr class="divider"><p class="small-text muted">Vérifie la vitesse de synchronisation, le mode d’obturation et la compatibilité appareil / flash / déclencheur dans leurs manuels. Conserve tes réglages testés dans les notes.</p></div></div>';
+    if(fieldTab==='drone')html+='<div class="grid-two"><div class="panel"><div class="panel-head"><h2>Préparer un vol</h2>'+btn('Décocher','checks-reset','drone','small secondary')+'</div>'+checkList(state.drone,'global','','drone',true)+checkAdder('global','','drone','Ajouter une vérification')+'<form data-form="drone">'+area('notes','Notes mission',state.droneNotes,4,'maxlength="15000"')+'<button class="button secondary" type="submit">Enregistrer les notes</button></form></div><div class="panel"><h2>Aéronef et mission préparés</h2><p class="small-text muted">CATS / STS, catégorie, aéronef et lieu sont à rapprocher pour chaque mission. Une checklist cochée ne vaut pas autorisation de voler.</p><h3>Sources officielles à consulter</h3><a class="link-row" href="https://www.ecologie.gouv.fr/politiques-publiques/exploitation-drones-categorie-ouverte" target="_blank" rel="noopener noreferrer">DGAC · catégorie ouverte</a><a class="link-row" href="https://alphatango.aviation-civile.gouv.fr/" target="_blank" rel="noopener noreferrer">AlphaTango · démarches</a><a class="link-row" href="https://www.geoportail.gouv.fr/donnees/restrictions-uas-categorie-ouverte-et-aeromodelisme" target="_blank" rel="noopener noreferrer">Géoportail · restrictions UAS</a><a class="link-row" href="https://www.sia.aviation-civile.gouv.fr/" target="_blank" rel="noopener noreferrer">SIA · information aéronautique</a><p class="help">Ces pages nécessitent une connexion. Les restrictions temporaires et la situation sur place restent à vérifier avant le vol.</p><div class="script">Chaque plan aérien doit servir le film : situer, révéler, relier.</div><p class="small-text muted">Prévois un plan au sol de remplacement si les conditions ne permettent pas le vol.</p></div></div>';return html;
+  }
+  function renderContent() {
+    var d=parseDate(today()),day=d.getDay();d.setDate(d.getDate()-(day===0?6:day-1)+weekShift*7);var monday=dateKey(d);
+    var html=head('MONTRER TON TRAVAIL','Ta prochaine publication.','Des contenus pour être découvert, donner confiance et obtenir des contacts.',btn('Idées de contenus','content-ideas',undefined,'secondary','spark')+btn('Planifier','content-new',undefined,'','plus'));
+    html+=formationShortcut('9db16e61-fc51-418d-85c7-65a03981f707','Préparer tes publications · les notes de ta formation');
+    html+='<div class="panel"><div class="panel-head"><div><h2>Semaine du '+dateLabel(monday,true)+'</h2><p>TOFU : visibilité · MOFU : confiance · BOFU : prise de contact</p></div><div>'+btn('←','week-prev',undefined,'small secondary')+' '+btn('→','week-next',undefined,'small secondary')+'</div></div><div class="calendar-grid">';
+    for(var i=0;i<7;i++){var dt=shiftDate(monday,i),date=parseDate(dt);html+='<div class="day-cell'+(dt===today()?' today':'')+'"><div class="day-name">'+date.toLocaleDateString('fr-FR',{weekday:'short'})+'</div><div class="day-number">'+date.getDate()+'</div>'+state.content.filter(function(c){return c.date===dt;}).map(function(c){return '<button class="content-dot '+c.stage.toLowerCase()+'" data-action="content-edit" data-id="'+esc(c.id)+'">'+esc(c.title)+(c.status==='Publié'?' ✓':'')+'</button>';}).join('')+'<button class="text-button" data-action="content-day" data-id="'+dt+'" aria-label="Ajouter un contenu le '+dateLabel(dt)+'">+</button></div>';}
+    html+='</div></div><div class="panel"><div class="panel-head"><h2>Mes sujets</h2><span class="muted small-text">'+state.content.length+' contenus</span></div>';
+    html+=state.content.length?'<div class="content-list">'+state.content.slice().sort(function(a,b){return (a.date||'9999').localeCompare(b.date||'9999');}).map(function(c){return '<div class="list-row"><div class="row-main"><strong>'+esc(c.title)+'</strong>'+badge(c.stage,c.stage==='BOFU'?'amber':c.stage==='MOFU'?'blue':'')+'<small>'+dateLabel(c.date,true)+' · '+esc(c.platform)+' · '+esc(c.status)+'</small></div>'+btn('Ouvrir','content-edit',c.id,'small secondary')+'</div>';}).join('')+'</div>':empty('Montre ce que tu sais faire.','Commence par les coulisses, un avant / après ou la présentation de ton offre.',btn('Voir les idées','content-ideas',undefined,'secondary'));return html+'</div>';
+  }
+  function contentForm(id,prefill) {var c=find(state.content,id)||prefill||{id:'',title:'',stage:'TOFU',date:'',platform:'Instagram + Facebook',status:'Idée',hook:'',shots:'',cta:'',notes:''};openModal(c.id?'Modifier le contenu':'Planifier un contenu','<form data-form="content" data-id="'+esc(c.id||'')+'">'+input('title','Sujet',c.title,'text','required maxlength="180"')+'<div class="form-grid">'+select('stage','Objectif',['TOFU','MOFU','BOFU'],c.stage)+input('date','Date de publication',c.date||'','date')+select('platform','Réseau',['Instagram + Facebook','Instagram','Facebook','TikTok','LinkedIn','YouTube'],c.platform||'Instagram + Facebook')+select('status','Avancement',['Idée','À tourner','À monter','Prêt','Publié'],c.status||'Idée')+'</div>'+area('hook','Accroche',c.hook,2,'maxlength="3000"')+area('shots','Plans / tournage à prévoir',c.shots,3,'maxlength="5000"')+input('cta','Appel à l’action',c.cta,'text','maxlength="1500"')+area('notes','Notes / texte / résultats',c.notes||'',3,'maxlength="10000"')+actions()+'</form>'+(c.id?btn('Supprimer','content-delete',c.id,'small danger'):''));}
+  function renderSettings() {
+    var p=state.profile;return head('UN OUTIL À TON IMAGE','Tes repères et tes données.','L’application fonctionne sur cet appareil. Une sauvegarde permet de transférer tes données.')+'<div class="grid-two"><section class="panel"><h2>Mes objectifs</h2><form data-form="settings"><div class="form-grid">'+input('name','Prénom',p.name,'text','required maxlength="100"')+input('fullname','Nom / activité',p.fullname,'text','maxlength="160"')+input('city','Ville',p.city,'text','maxlength="160"')+input('monthlyTarget','Objectif CA accepté / mois (€)',p.monthlyTarget,'number','min="1" max="1000000" step="1" required')+input('hourlyTarget','Objectif disponible / h (€)',p.hourlyTarget,'number','min="1" max="10000" step="1" required')+input('reserve','Provision de simulation (%)',p.reserve,'number','min="0" max="95" step="0.1" required','Hypothèse du calculateur, à personnaliser.')+input('kmRate','Tarif kilométrique (€)',p.kmRate,'number','min="0" max="100" step="0.01" required')+select('largeText','Confort de lecture',[['false','Texte standard'],['true','Texte agrandi']],String(p.largeText))+input('session1','Session 1 · horaire indicatif',p.session1,'time','required')+input('session2','Session 2 · horaire indicatif',p.session2,'time','required')+'</div><p class="help">Le mercredi, les sessions proposées sont à 13 h et 15 h pour libérer la matinée. Le chrono mesure la session ; il ne déclenche aucune notification.</p><button class="button" type="submit">Enregistrer mes repères</button></form></section><div><section class="panel"><h2>Sauvegarder et transférer</h2><p class="muted small-text">Formation, favoris, notes, prospects, projets, joueurs, tarifs et contenus sont enregistrés dans ce navigateur. PC et iPad ne se synchronisent pas automatiquement.</p>'+btn('Exporter ma sauvegarde','backup',undefined,'wide','download')+'<div style="margin-top:10px">'+btn('Importer / restaurer une sauvegarde','import-backup',undefined,'wide secondary')+'</div><p class="help">Dernier export : '+esc(state.lastBackup||'pas encore effectué')+'. Le fichier contient tes données personnelles : garde-le hors du dépôt public.</p><hr class="divider"><h3>Ton dossier de démarrage</h3><p class="small-text muted">Importe le fichier JSON fourni avec la V3 pour retrouver les pistes et projets de nos échanges. L’import ajoute les éléments absents et conserve tes suivis existants.</p>'+btn('Importer mon dossier personnel','import-pack',undefined,'wide secondary')+'</section><section class="panel"><h2>Sur ton iPad</h2><p class="install-note">Dans Safari : Partager → Sur l’écran d’accueil. Ouvre une première fois l’application avec Internet, attends le message « Hors ligne prêt », puis teste sans connexion.</p><p class="install-note">Garde la même adresse et le même contexte Safari / écran d’accueil pour retrouver tes saisies. Avant de changer d’appareil ou de vider les données Safari, exporte ta sauvegarde.</p><p class="small-text muted" id="offlineStatus">'+esc(offlineText)+'</p>'+btn('Chercher une mise à jour','check-update',undefined,'small secondary')+'<p class="help">Version '+D.version+' · HTML/CSS/JS sans dépendance réseau · Reprise des données V1 / V2 '+(state.migration?'effectuée':'à la première ouverture si elles sont présentes')+'.</p></section></div></div>';
+  }
+  function str(v,max) {if(v==null)return '';if(typeof v!=='string'||v.length>(max||30000))throw new Error('Un champ texte est invalide ou trop long.');return v;}
+  function number(v,fallback,max) {if(v==null)return fallback||0;if(typeof v!=='number'||!isFinite(v)||v<0||v>(max||10000000))throw new Error('Une valeur numérique est invalide.');return v;}
+  function list(v,max) {if(v==null)return [];if(!Array.isArray(v)||v.length>(max||5000))throw new Error('Une liste est invalide ou trop volumineuse.');return v;}
+  function object(v) {if(!v||typeof v!=='object'||Array.isArray(v))throw new Error('Structure de données invalide.');return v;}
+  function validDate(v) {var s=str(v,10);if(s&&(!/^\d{4}-\d{2}-\d{2}$/.test(s)||dateKey(parseDate(s))!==s))throw new Error('Une date est invalide.');return s;}
+  function choice(v,choices,fallback) {return choices.indexOf(v)>=0?v:fallback;}
+  function idOf(v) {var s=str(v,120);if(!/^[a-zA-Z0-9_-]+$/.test(s))throw new Error('Identifiant de donnée invalide.');return s;}
+  function cleanChecks(v) {return list(v,500).map(function(c){object(c);return {t:str(c.t,2000),d:c.d===true};});}
+  function uniqueRecords(v,fn) {var seen={};return list(v,3000).map(function(x){object(x);var id=idOf(x.id);if(seen['$'+id])throw new Error('Un identifiant est présent plusieurs fois.');seen['$'+id]=true;return fn(x);});}
+  function validateState(raw) {
+    object(raw);if(raw.schema!==2&&raw.schema!==3)throw new Error('Ce fichier ne correspond pas au format MF Tools V2 ou V3.');var s=base(),p=raw.profile||{};
+    s.updatedAt=str(raw.updatedAt,100);s.lastBackup=str(raw.lastBackup,100);
+    s.profile={name:str(p.name,100),fullname:str(p.fullname,160),city:str(p.city,160),monthlyTarget:number(p.monthlyTarget,0,1000000),hourlyTarget:number(p.hourlyTarget,0,10000),reserve:number(p.reserve,0,95),kmRate:number(p.kmRate,0,100),session1:/^\d\d:\d\d$/.test(p.session1)?p.session1:'09:30',session2:/^\d\d:\d\d$/.test(p.session2)?p.session2:'14:00',largeText:p.largeText===true};
+    s.leads=uniqueRecords(raw.leads,function(l){return {id:idOf(l.id),name:str(l.name,160),contact:str(l.contact,160),sector:choice(l.sector,D.sectors,'Autre'),city:str(l.city,120),phone:str(l.phone,40),email:str(l.email,200),status:choice(l.status,D.statuses,'À contacter'),priority:choice(l.priority,['Haute','Normale','Basse'],'Normale'),offer:str(l.offer,200),amount:number(l.amount,0),nextDate:validDate(l.nextDate),nextAction:str(l.nextAction,500),notes:str(l.notes,20000),history:uniqueRecords(l.history,function(h){var dt=str(h.date,100);if(!/^\d{4}-\d\d-\d\d/.test(dt))throw new Error('Date de compte rendu manquante.');validDate(dt.slice(0,10));return {id:idOf(h.id),date:dt,channel:str(h.channel,100),result:str(h.result,200),note:str(h.note,10000),nextDate:validDate(h.nextDate),nextAction:str(h.nextAction,500)};})};});
+    s.projects=uniqueRecords(raw.projects,function(p){var v=project(p.id,p.name,choice(p.type,D.projectTypes,'Film vitrine'));['client','location','brief','plan','notes','deliverables','droneNotes'].forEach(function(k){v[k]=str(p[k],20000);});v.name=str(p.name,160);v.date=validDate(p.date);v.time=str(p.time,10);v.status=choice(p.status,D.stages,'À préparer');v.format=choice(p.format,['16:9','9:16','16:9 + 9:16','Photo'],'16:9');['shots','gear','delivery','drone','prep'].forEach(function(k){if(p[k]!=null)v[k]=cleanChecks(p[k]);});return v;});
+    s.quotes=uniqueRecords(raw.quotes,function(q){var o={id:idOf(q.id),leadId:str(q.leadId,120),client:str(q.client,160),title:str(q.title,180),scope:str(q.scope,6000),status:choice(q.status,['Brouillon','Envoyé','Accepté','Refusé'],'Brouillon'),acceptedDate:validDate(q.acceptedDate),notes:str(q.notes,6000),createdAt:validDate(q.createdAt)};['prep','shoot','edit','admin','travel','basePrice','km','kmRate','billedCosts','costs','target'].forEach(function(k){o[k]=number(q[k],0);});o.reserve=number(q.reserve,25,95);o.price=o.basePrice+o.km*o.kmRate+o.billedCosts;return o;});
+    s.interviews=uniqueRecords(raw.interviews,function(i){return {id:idOf(i.id),name:str(i.name,160),projectId:str(i.projectId,120),notes:str(i.notes,10000),questions:uniqueRecords(i.questions,function(q){var v={id:idOf(q.id),stage:choice(q.stage,['TOFU','MOFU','BOFU'],'MOFU')};['q','hook','broll','cta','timecode'].forEach(function(k){v[k]=str(q[k],5000);});['interview','illustration','edited','delivered'].forEach(function(k){v[k]=q[k]===true;});return v;})};});
+    s.media=uniqueRecords(raw.media,function(m){return {id:idOf(m.id),name:str(m.name,160),date:validDate(m.date),notes:str(m.notes,20000),players:uniqueRecords(m.players,function(p){return {id:idOf(p.id),name:str(p.name,160),number:str(p.number,30),file:str(p.file,300),poses:D.poses.map(function(_,i){return !!(p.poses&&p.poses[i]===true);})};})};});
+    s.content=uniqueRecords(raw.content,function(c){return {id:idOf(c.id),title:str(c.title,180),date:validDate(c.date),stage:choice(c.stage,['TOFU','MOFU','BOFU'],'TOFU'),platform:str(c.platform,100)||'Instagram + Facebook',status:choice(c.status,['Idée','À tourner','À monter','Prêt','Publié'],'Idée'),hook:str(c.hook,5000),shots:str(c.shots,5000),cta:str(c.cta,2000),notes:str(c.notes,15000)};});
+    if(raw.gear!=null)s.gear=cleanChecks(raw.gear);if(raw.drone!=null)s.drone=cleanChecks(raw.drone);s.droneNotes=str(raw.droneNotes,20000);
+    if(raw.flash){object(raw.flash);['iso','aperture','shutter','distance','notes'].forEach(function(k){s.flash[k]=str(raw.flash[k],8000);});}
+    if(raw.offers!=null){s.offers=uniqueRecords(raw.offers,function(o){return {id:idOf(o.id),name:str(o.name,160),normal:number(o.normal,0),founder:number(o.founder,0),desc:str(o.desc,5000),deliverables:str(o.deliverables,5000)};});if(s.offers.length!==3)throw new Error('La grille doit contenir trois offres.');}
+    if(raw.sessions){object(raw.sessions);Object.keys(raw.sessions).forEach(function(k){if(validDate(k)!==k)throw new Error('Date de session invalide.');var a=list(raw.sessions[k],2);if(a.length!==2)throw new Error('Deux sessions sont attendues.');s.sessions[k]=a.map(function(x){object(x);return {seconds:number(x.seconds,0,3600),startAt:number(x.startAt,0,Date.now()+86400000),running:x.running===true,completed:x.completed===true};});});}
+    if(raw.legacy){object(raw.legacy);Object.keys(raw.legacy).forEach(function(k){if(/^mf_[A-Za-z0-9_]+$/.test(k))s.legacy[k]=str(raw.legacy[k],1000000);});}
+    if(raw.migration)s.migration={date:validDate(raw.migration.date),message:str(raw.migration.message,500)};
+    s.formation=validateFormation(raw.formation);
+    if(raw.resources){object(raw.resources);s.resources.terrain=str(raw.resources.terrain,20000);if(raw.resources.scripts){object(raw.resources.scripts);D.sectors.forEach(function(k){if(raw.resources.scripts[k])s.resources.scripts[k]=str(raw.resources.scripts[k],8000);});}}
+    return s;
+  }
+  function download(name,data,type) {
+    var a=document.createElement('a');
+    if(!('download' in a)){openModal('Conserver ce fichier','<p class="small-text muted">Sur cet ancien Safari, copie le contenu ci-dessous dans un fichier '+esc(name)+' sur ton ordinateur.</p>'+area('exportText','Contenu à copier',data,12,'readonly id="exportText"')+btn('Copier tout','copy-export',undefined,'wide','copy'));return;}
+    var blob=new Blob([data],{type:type||'text/plain;charset=utf-8'}),url=URL.createObjectURL(blob);a.href=url;a.download=name;document.body.appendChild(a);a.click();a.parentNode.removeChild(a);setTimeout(function(){URL.revokeObjectURL(url);},60000);
+  }
+  function backup() {state.lastBackup=new Date().toLocaleString('fr-FR');persist();var out={format:'mf-tools-backup',version:3,exportedAt:new Date().toISOString(),data:state};if(blocked){try{out.originalUnreadable=localStorage.getItem(KEY);}catch(e){}}download('MF-Tools-sauvegarde-'+today()+'.json',JSON.stringify(out,null,2),'application/json');if(page==='settings')render();toast('Export préparé. Conserve le fichier pour restaurer tes données.');}
+  function chooseImport(mode) {importMode=mode;openModal(mode==='formation'?'Importer ta formation':mode==='pack'?'Importer ton dossier personnel':'Importer une sauvegarde','<p class="small-text muted">Choisis le fichier JSON fourni avec la V3, ou une sauvegarde V2 / V3. Un aperçu s’affichera avant toute modification.</p>'+btn('Choisir un fichier JSON','select-import-file',undefined,'wide','download')+'<hr class="divider"><form data-form="paste-import">'+area('json','Ou colle le contenu du fichier JSON','',5,'required maxlength="5000000"')+'<button class="button secondary wide" type="submit">Lire le contenu collé</button></form>',true);}
+  function parseImport(text) {try {
+    if(text.length>5000000)throw new Error('Ce fichier dépasse la limite de 5 Mo.');var raw=JSON.parse(text);
+    if(raw&&raw.format==='mf-tools-formation'&&raw.version===1){formationImport({map:raw.data,marks:[],last:''});return;}
+    if(!raw||[2,3].indexOf(raw.version)<0||['mf-tools-backup','mf-tools-personal-pack'].indexOf(raw.format)<0)throw new Error('Choisis une sauvegarde MF Tools V2 / V3 ou le dossier personnel fourni.');
+    var data=validateState(raw.data);pendingImport={data:data,pack:raw.format==='mf-tools-personal-pack'};
+    var counts=data.leads.length+' contacts · '+data.projects.length+' projets · '+data.media.length+' séances · '+data.quotes.length+' chiffrages'+(data.formation.map?' · '+data.formation.map.nodes.length+' sujets de formation':'');
+    openModal('Vérifier avant import','<p>'+esc(counts)+'</p><p class="small-text muted">Fusionner ajoute les éléments absents, sans remplacer les éléments existants portant le même identifiant ou le même nom.</p>'+btn('Fusionner avec mes données','import-merge',undefined,'wide')+(pendingImport.pack?'':'<hr class="divider"><p class="small-text muted">Restaurer remplace toutes les données de cet appareil par cette sauvegarde. Exporte d’abord ton état actuel.</p>'+btn('Exporter mon état actuel','backup',undefined,'wide secondary')+'<div style="margin-top:10px">'+btn('Remplacer par cette sauvegarde','import-replace',undefined,'wide danger')+'</div>'),true);
+  } catch(e){toast('Import refusé : '+e.message);}}
+  function mergeIncoming(current,incoming) {
+    var merged=clone(current);
+    ['leads','projects','quotes','interviews','media','content'].forEach(function(k){incoming[k].forEach(function(item){var name=item.name||item.title||'';var exists=merged[k].some(function(old){return old.id===item.id||(k!=='quotes'&&name&&(old.name||old.title||'').toLowerCase()===name.toLowerCase());});if(!exists)merged[k].push(clone(item));});});
+    if(!merged.profile.name&&incoming.profile.name){['name','fullname','city','monthlyTarget','hourlyTarget','reserve','kmRate','session1','session2'].forEach(function(k){merged.profile[k]=incoming.profile[k];});}
+    ['fullname','city'].forEach(function(k){if(!merged.profile[k]&&incoming.profile[k])merged.profile[k]=incoming.profile[k];});
+    D.sectors.forEach(function(k){if(!merged.resources.scripts[k]&&incoming.resources.scripts[k])merged.resources.scripts[k]=incoming.resources.scripts[k];});
+    if(!merged.resources.terrain&&incoming.resources.terrain)merged.resources.terrain=incoming.resources.terrain;
+    if(JSON.stringify(merged.gear)===JSON.stringify(checks(D.gear))&&JSON.stringify(incoming.gear)!==JSON.stringify(checks(D.gear)))merged.gear=clone(incoming.gear);
+    if(merged.offers.every(function(o){return o.normal===0&&o.founder===0;}))merged.offers=clone(incoming.offers);
+    merged.formation=mergeFormation(merged.formation,incoming.formation);return merged;
+  }
+  function applyImport(replace) {
+    if(!pendingImport)return;
+    if(replace&&!window.confirm('Remplacer toutes les données de cet appareil par cette sauvegarde ?'))return;
+    var previous=clone(state);try{var old=localStorage.getItem(KEY);if(replace&&old)localStorage.setItem(KEY+'_before_restore',old);}catch(e){toast('Restauration annulée : impossible de conserver l’état précédent.');return;}
+    if(blocked&&!replace){toast('Recharge la page ou restaure une sauvegarde complète avant de fusionner.');return;}
+    if(replace){state=pendingImport.data;blocked=false;try{lastRevision=JSON.parse(localStorage.getItem(KEY)||'{}').updatedAt||'';}catch(e){lastRevision='';}}
+    else{try{state=mergeIncoming(state,pendingImport.data);}catch(e){toast('Import refusé : '+e.message);return;}}
+    if(!persist(replace)){state=previous;toast('Import non enregistré. Tes données précédentes restent disponibles.');return;}
+    pendingImport=null;formationIndex=null;closeModal();document.body.classList.toggle('large-text',state.profile.largeText);render();toast(replace?'Sauvegarde restaurée.':'Éléments absents ajoutés ; données existantes conservées.');
+  }
+  function copy(text) {if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(function(){toast('Texte copié.');}).catch(function(){copyFallback(text);});}else copyFallback(text);}
+  function copyFallback(text) {var t=document.createElement('textarea');t.value=text;t.style.position='fixed';t.style.top='-9999px';document.body.appendChild(t);t.focus();t.select();t.setSelectionRange(0,t.value.length);var ok=false;try{ok=document.execCommand('copy');}catch(e){}document.body.removeChild(t);if(ok)toast('Texte copié.');else openModal('Copier le texte',area('copy','Sélectionne puis copie',text,12,'readonly'),true);}
+  function dailyReport() {var logs=dayLogs(today()),s=sessionData(today()),text='COMPTE RENDU COMMERCIAL · '+dateLabel(today())+'\n\n'+logs.length+' démarches enregistrées\nSession 1 : '+Math.floor(elapsed(s[0])/60)+' min · Session 2 : '+Math.floor(elapsed(s[1])/60)+' min\n\n';logs.forEach(function(x,i){text+=(i+1)+'. '+x.lead.name+' · '+x.log.channel+'\nRésultat : '+x.log.result+'\n'+x.log.note+'\nSuite : '+x.log.nextAction+(x.log.nextDate?' · '+x.log.nextDate:'')+'\n\n';});openModal('Ton bilan du jour','<p class="small-text muted">Copie ce bilan pour me l’envoyer dans la conversation et préparer la suite.</p>'+area('report','Bilan',text,13,'readonly id="reportText"')+btn('Copier le bilan','copy-report',undefined,'wide','copy'));}
+  function printDoc(title,body) {get('printArea').innerHTML='<div class="print-meta">'+esc(state.profile.fullname||state.profile.name||'Mon activité')+' · MF TOOLS 03</div><h1>'+esc(title)+'</h1>'+body+'<div class="print-footer">Document préparé le '+dateLabel(today())+' · MF Tools '+D.version+'</div>';window.print();}
+  function printChecks(title,a) {return '<div class="print-block"><h2>'+esc(title)+'</h2><table>'+a.map(function(c){return '<tr><td style="width:8mm">'+(c.d?'✓':'☐')+'</td><td>'+esc(c.t)+'</td></tr>';}).join('')+'</table></div>';}
+  function printProject(id) {var p=find(state.projects,id);if(!p)return;printDoc(p.name,'<p>'+esc(p.client)+' · '+dateLabel(p.date)+' · '+esc(p.time)+'<br>'+esc(p.location)+'</p><p>'+esc(p.brief)+'</p><p><b>Livrables :</b> '+esc(p.deliverables)+' · '+esc(p.format)+'</p><h2>Déroulé</h2><p class="pre-wrap">'+esc(p.plan)+'</p>'+printChecks('Préparation',p.prep)+printChecks('Shotlist',p.shots)+printChecks('Matériel',p.gear)+printChecks('Montage & livraison',p.delivery)+'<h2>Notes</h2><p class="pre-wrap">'+esc(p.notes)+'</p>');}
+  function printQuote() {var form=get('quoteForm');if(!form)return;if(!form.checkValidity()){form.reportValidity();return;}var q=quoteValues(form),m=math(q);printDoc('Préparation de devis · '+q.client,'<p class="print-meta">Document interne à reporter dans Henrri · ne vaut pas devis final</p><h2>'+esc(q.title)+'</h2><p class="pre-wrap">'+esc(q.scope)+'</p><table><tr><th>Poste</th><th>Montant</th></tr><tr><td>Prestation</td><td>'+money(q.basePrice)+'</td></tr><tr><td>Déplacement : '+q.km+' km × '+money(q.kmRate)+'</td><td>'+money(q.km*q.kmRate)+'</td></tr><tr><td>Autres frais facturés</td><td>'+money(q.billedCosts)+'</td></tr><tr><th>Total</th><th>'+money(q.price)+'</th></tr></table><h2>Analyse interne</h2><p>'+m.hours+' heures au total · coûts estimés '+money(q.costs)+' · provision de simulation '+q.reserve+' %<br>Disponible estimé avant IR : '+money(m.available)+' · '+money(m.hourly)+'/h<br>Prix nécessaire pour ton objectif : '+money(m.floor)+'</p><h2>Conditions / points à confirmer</h2><p class="pre-wrap">'+esc(q.notes)+'</p>');}
+  function handleAction(action,id,el) {
+    var item,p,a,i;
+    if(handleFormationAction(action,id))return;
+    if(action==='close'){closeModal();return;}
+    if(action==='dismiss'){newVisit=false;renderNotices();return;}
+    if(action==='backup'){backup();return;}
+    if(action==='import-pack'){chooseImport('pack');return;}
+    if(action==='import-backup'){chooseImport('backup');return;}
+    if(action==='select-import-file'){get('importFile').value='';get('importFile').click();return;}
+    if(action==='import-merge'||action==='import-replace'){applyImport(action==='import-replace');return;}
+    if(action==='copy-export'){copy(get('exportText').value);return;}
+    if(action==='copy-report'){copy(get('reportText').value);return;}
+    if(action==='daily-report'){dailyReport();return;}
+    if(action==='session'){toggleSession(+id);return;}
+    if(action==='start-prospect'){a=leadQueue();navigate('leads');if(a.length)leadOpen(a[0].id);else leadForm();return;}
+    if(action==='lead-new'){leadForm();return;}
+    if(action==='lead-open'){leadOpen(id);return;}
+    if(action==='lead-edit'){leadForm(id);return;}
+    if(action==='lead-log'){logForm(id);return;}
+    if(action==='lead-delete'){item=find(state.leads,id);if(item&&window.confirm('Supprimer '+item.name+' et son historique ?')){state.leads=state.leads.filter(function(l){return l.id!==id;});persist();closeModal();render();}return;}
+    if(action==='scripts'){scriptsModal(id);return;}
+    if(action==='copy-script'){item=find(state.leads,id);if(item)copy(scriptFor(item.sector));return;}
+    if(action==='quote-tab'){if(get('quoteForm'))quoteDraft=quoteValues(get('quoteForm'));quoteTab=id;render();return;}
+    if(action==='offer-edit'){offerForm(id);return;}
+    if(action==='quote-new'||action==='quote-for-lead'||action==='quote-offer'||action==='quote-open') {
+      if(action==='quote-open'){item=find(state.quotes,id);if(!item)return;quoteDraft=clone(item);}else{quoteDraft=quoteBase();
+        if(action==='quote-for-lead'){item=find(state.leads,id);if(item){quoteDraft.client=item.name;quoteDraft.leadId=id;quoteDraft.notes=item.nextAction;}}
+        if(action==='quote-offer'){item=find(state.offers,id);if(item){quoteDraft.title=item.name;quoteDraft.scope=item.deliverables;quoteDraft.basePrice=item.normal;}}
+      }quoteTab='calculator';closeModal();if(page==='quotes')render();else navigate('quotes');return;
     }
+    if(action==='quote-print'){printQuote();return;}
+    if(action==='project-new'){projectForm();return;}
+    if(action==='project-edit'){projectForm(id);return;}
+    if(action==='project-open'){selectedProject=id;if(page==='projects')render();else navigate('projects');return;}
+    if(action==='projects-back'){selectedProject='';render();return;}
+    if(action==='project-print'){printProject(id);return;}
+    if(action==='project-duplicate'){p=find(state.projects,id);if(p){var cp=clone(p);cp.id=uid('project');cp.name=p.name+' · copie';cp.date='';cp.status='À préparer';['shots','gear','delivery','drone','prep'].forEach(function(k){cp[k].forEach(function(c){c.d=false;});});state.projects.push(cp);selectedProject=cp.id;persist();render();toast('Copie créée avec des cases vierges.');}return;}
+    if(action==='project-delete'){p=find(state.projects,id);if(p&&window.confirm('Supprimer le dossier '+p.name+' ? Les interviews restent conservées.')){state.projects=state.projects.filter(function(x){return x.id!==id;});selectedProject='';persist();render();}return;}
+    if(action==='check-delete'){var scope=el.getAttribute('data-scope'),kind=el.getAttribute('data-kind');p=scope==='global'?state:find(state.projects,id);a=p&&p[kind];i=+el.getAttribute('data-index');if(a&&a[i]&&window.confirm('Supprimer cet élément de la liste ?')){a.splice(i,1);persist();render();}return;}
+    if(action==='checks-reset'){if(window.confirm('Décocher la liste '+(id==='gear'?'du matériel':'drone')+' ?')){state[id].forEach(function(x){x.d=false;});persist();render();}return;}
+    if(action==='interview-new'){interviewForm();return;}
+    if(action==='interview-edit'){interviewForm(id);return;}
+    if(action==='interview-project'){interviewForm('',id);return;}
+    if(action==='question-new'){questionForm(id);return;}
+    if(action==='question-edit'){a=id.split('|');questionForm(a[0],a[1]);return;}
+    if(action==='question-delete'){a=id.split('|');item=find(state.interviews,a[0]);if(item&&window.confirm('Supprimer ce sujet ?')){item.questions=item.questions.filter(function(q){return q.id!==a[1];});persist();closeModal();render();}return;}
+    if(action==='interview-print'){item=find(state.interviews,id);if(item)printDoc(item.name,'<p>'+esc(item.notes)+'</p>'+item.questions.map(function(q,i){return '<div class="print-block"><h2>'+pad(i+1)+' · '+esc(q.q)+'</h2><p><b>'+q.stage+' · Accroche :</b> '+esc(q.hook)+'<br><b>Images :</b> '+esc(q.broll)+'<br><b>CTA :</b> '+esc(q.cta)+'<br><b>Rush :</b> '+esc(q.timecode)+'</p><p>'+(q.interview?'✓':'☐')+' Réponse · '+(q.illustration?'✓':'☐')+' Images · '+(q.edited?'✓':'☐')+' Montage · '+(q.delivered?'✓':'☐')+' Livraison</p></div>';}).join(''));return;}
+    if(action==='media-new'){mediaForm();return;}
+    if(action==='media-edit'){mediaForm(id);return;}
+    if(action==='players-add'){openModal('Ajouter les joueurs','<form data-form="players" data-id="'+esc(id)+'">'+area('names','Un joueur par ligne','',10,'required maxlength="30000" placeholder="Prénom Nom\nPrénom Nom"')+'<p class="help">Tu pourras ajouter ensuite le numéro et le repère du fichier en ouvrant le nom.</p>'+actions('Ajouter la liste')+'</form>',true);return;}
+    if(action==='player-edit'){a=id.split('|');item=find(state.media,a[0]);p=item?find(item.players,a[1]):null;if(p)openModal(p.name,'<form data-form="player" data-id="'+esc(a[0])+'" data-player="'+esc(a[1])+'">'+input('name','Joueur',p.name,'text','required maxlength="160"')+input('number','Numéro',p.number,'text','maxlength="30"')+input('file','Repère fichier / série',p.file,'text','maxlength="300"')+actions()+'</form>'+btn('Supprimer le joueur','player-delete',id,'small danger'),true);return;}
+    if(action==='player-delete'){a=id.split('|');item=find(state.media,a[0]);if(item&&window.confirm('Supprimer ce joueur et ses cases cochées ?')){item.players=item.players.filter(function(p){return p.id!==a[1];});persist();closeModal();render();}return;}
+    if(action==='media-print'){item=find(state.media,id);if(item)printDoc(item.name,'<p>'+dateLabel(item.date)+' · '+esc(item.notes)+'</p><table><thead><tr><th>Joueur / fichier</th>'+D.poses.map(function(p){return '<th>'+p+'</th>';}).join('')+'</tr></thead><tbody>'+item.players.map(function(p){return '<tr><td>'+esc(p.name)+'<br>'+esc(p.number)+' · '+esc(p.file)+'</td>'+p.poses.map(function(c){return '<td>'+(c?'✓':'☐')+'</td>';}).join('')+'</tr>';}).join('')+'</tbody></table>');return;}
+    if(action==='field-tab'){fieldTab=id;render();return;}
+    if(action==='flash-nav'){fieldTab='flash';if(page==='field')render();else navigate('field');return;}
+    if(action==='content-new'){contentForm();return;}
+    if(action==='content-edit'){contentForm(id);return;}
+    if(action==='content-day'){contentForm('',{title:'',stage:'TOFU',date:id});return;}
+    if(action==='content-delete'){if(window.confirm('Supprimer ce contenu ?')){state.content=state.content.filter(function(c){return c.id!==id;});persist();closeModal();render();}return;}
+    if(action==='content-ideas'){openModal('Des idées à tourner avec ce que tu as.','<p class="modal-subtitle">Ces sujets sont proposés à partir de ton activité. Choisis celui qui sert ton prochain rendez-vous.</p>'+D.contentIdeas.map(function(c,i){return '<div class="list-row"><div class="row-main"><strong>'+esc(c.title)+'</strong><small>'+esc(c.stage+' · '+c.hook)+'</small></div>'+btn('Planifier','content-idea',String(i),'small secondary')+'</div>';}).join(''));return;}
+    if(action==='content-idea'){contentForm('',clone(D.contentIdeas[+id]));return;}
+    if(action==='week-prev'||action==='week-next'){weekShift+=action==='week-prev'?-1:1;render();return;}
+    if(action==='check-update'){checkUpdate();return;}
+    if(action==='update'){if(waitingWorker){persist();waitingWorker.postMessage({type:'SKIP_WAITING'});}return;}
+  }
+  function handleForm(form) {
+    var type=form.getAttribute('data-form'),id=form.getAttribute('data-id'),item,p,k,ok=true;
+    if(type==='lead') {
+      item=find(state.leads,id)||{id:uid('lead'),history:[]};['name','contact','sector','city','phone','email','status','priority','offer','nextDate','nextAction','notes'].forEach(function(k){item[k]=value(form,k).trim();});item.amount=num(value(form,'amount'));if(!id)state.leads.push(item);
+    } else if(type==='log') {
+      item=find(state.leads,id);if(!item)return;item.history.push({id:uid('log'),date:today()+'T'+new Date().toTimeString().slice(0,8),channel:value(form,'channel'),result:value(form,'result'),note:value(form,'note').trim(),nextDate:value(form,'nextDate'),nextAction:value(form,'nextAction').trim()});item.status=value(form,'status');item.nextDate=value(form,'nextDate');item.nextAction=value(form,'nextAction').trim();
+    } else if(type==='offer') {
+      item=find(state.offers,id);if(!item)return;['name','desc','deliverables'].forEach(function(k){item[k]=value(form,k);});item.normal=num(value(form,'normal'));item.founder=num(value(form,'founder'));
+    } else if(type==='quote') {
+      item=quoteValues(form);if(item.status==='Accepté'&&!item.acceptedDate){toast('Indique la date d’acceptation pour le suivi mensuel.');form.elements.acceptedDate.focus();return;}
+      if(!item.id){item.id=uid('quote');state.quotes.push(item);}else{state.quotes=state.quotes.map(function(q){return q.id===item.id?item:q;});}quoteDraft=clone(item);quoteTab='saved';
+    } else if(type==='project') {
+      item=find(state.projects,id)||project('',value(form,'name'),value(form,'type'));['name','client','type','date','time','location','status','format','brief','deliverables'].forEach(function(k){item[k]=value(form,k);});if(!id){item.gear=state.gear.map(function(c){return {t:c.t,d:false};});state.projects.push(item);}selectedProject=item.id;
+    } else if(type==='project-notes') {item=find(state.projects,id);if(!item)return;item.plan=value(form,'plan');item.notes=value(form,'notes');
+    } else if(type==='project-drone') {item=find(state.projects,id);if(!item)return;item.droneNotes=value(form,'notes');
+    } else if(type==='check-add') {
+      p=form.getAttribute('data-scope')==='global'?state:find(state.projects,id);k=form.getAttribute('data-kind');if(!p||!p[k])return;var text=value(form,'text').trim();if(!text)return;p[k].push({t:text,d:false});
+    } else if(type==='interview') {
+      item=find(state.interviews,id)||{id:uid('interview'),questions:questions(),projectId:form.getAttribute('data-project')||''};item.name=value(form,'name');item.notes=value(form,'notes');if(!id)state.interviews.push(item);selectedInterview=item.id;
+    } else if(type==='question') {
+      p=find(state.interviews,id);if(!p)return;k=form.getAttribute('data-question');item=find(p.questions,k)||{id:uid('reel'),interview:false,illustration:false,edited:false,delivered:false};['q','stage','hook','broll','cta','timecode'].forEach(function(k){item[k]=value(form,k);});if(!k)p.questions.push(item);
+    } else if(type==='media') {
+      item=find(state.media,id)||{id:uid('media'),players:[]};item.name=value(form,'name');item.date=value(form,'date');item.notes=value(form,'notes');if(!id)state.media.push(item);selectedMedia=item.id;
+    } else if(type==='players') {
+      item=find(state.media,id);if(!item)return;value(form,'names').split(/\r?\n/).map(function(n){return n.trim();}).filter(Boolean).forEach(function(name){if(!item.players.some(function(p){return p.name.toLowerCase()===name.toLowerCase();}))item.players.push({id:uid('player'),name:name.slice(0,160),number:'',file:'',poses:[false,false,false,false,false,false]});});
+    } else if(type==='player') {p=find(state.media,id);item=p?find(p.players,form.getAttribute('data-player')):null;if(!item)return;['name','number','file'].forEach(function(k){item[k]=value(form,k);});
+    } else if(type==='media-notes') {item=find(state.media,id);if(!item)return;item.notes=value(form,'notes');
+    } else if(type==='flash') {['iso','aperture','shutter','distance','notes'].forEach(function(k){state.flash[k]=value(form,k);});
+    } else if(type==='drone') {state.droneNotes=value(form,'notes');
+    } else if(type==='content') {item=find(state.content,id)||{id:uid('content')};['title','stage','date','platform','status','hook','shots','cta','notes'].forEach(function(k){item[k]=value(form,k);});if(!id)state.content.push(item);
+    } else if(type==='settings') {['monthlyTarget','hourlyTarget','reserve','kmRate'].forEach(function(k){state.profile[k]=num(value(form,k));});['name','fullname','city','session1','session2'].forEach(function(k){state.profile[k]=value(form,k);});state.profile.largeText=value(form,'largeText')==='true';document.body.classList.toggle('large-text',state.profile.largeText);
+    } else if(type==='terrain-resources') {state.resources.terrain=value(form,'terrain');
+    } else if(type==='formation-note') {if(fSaveMark(id,{note:value(form,'note')})){toast('Note personnelle enregistrée.');}return;
+    } else if(type==='formation-apply') {formationApplyForm(form);return;
+    } else if(type==='workflow') {workflowApply(form);return;
+    } else if(type==='paste-import') {parseImport(value(form,'json'));return;
+    } else return;
+    ok=persist();if(!ok){toast('Modifications en mémoire seulement. Exporte une sauvegarde.');return;}closeModal();
+    if(type==='project'&&page!=='projects'){navigate('projects');}else if(type==='interview'&&page!=='reels'){navigate('reels');}else render();
+    toast(type==='log'?'Compte rendu enregistré. Prochaine action fixée.':'Enregistré sur cet appareil.');
+  }
+  function closestAttr(el,attr) {while(el&&el!==document){if(el.nodeType===1&&el.hasAttribute(attr))return el;el=el.parentNode;}return null;}
+  document.addEventListener('click',function(e){var el=closestAttr(e.target,'data-action');if(el){e.preventDefault();handleAction(el.getAttribute('data-action'),el.getAttribute('data-id'),el);}});
+  document.addEventListener('submit',function(e){var f=e.target;if(f.getAttribute('data-form')){e.preventDefault();if(!f.checkValidity()){f.reportValidity();return;}handleForm(f);}});
+  document.addEventListener('input',function(e){var el=e.target;if(el.id==='formationSearch'){formationSearch=el.value;formationLimit=40;get('formationResults').innerHTML=formationResults();return;}if(el.id==='leadSearch'){leadSearch=el.value;get('leadResults').innerHTML=leadResults();}if(closestAttr(el,'data-form')===get('quoteForm')&&get('quoteForm')){quoteDraft=quoteValues(get('quoteForm'));updateCalc();}});
+  document.addEventListener('change',function(e){var el=e.target,p,a,i;
+    if(el.id==='workflowMethod'){get('workflowPreview').innerHTML=workflowPreview(el.value);return;}
+    if(el.id==='formationDestination'){get('formationTarget').innerHTML=opts(fTargetOptions(el.value),'');get('formationTargetHelp').textContent=fTargetOptions(el.value).length?'Les lignes seront ajoutées. Tes éléments existants sont conservés.':'Crée d’abord un dossier dans l’onglet correspondant.';return;}
+    if(el.id==='leadStatus'){leadFilter=el.value;get('leadResults').innerHTML=leadResults();return;}
+    if(el.id==='leadSector'){leadSector=el.value;get('leadResults').innerHTML=leadResults();return;}
+    if(el.id==='interviewSelect'){selectedInterview=el.value;render();return;}
+    if(el.id==='mediaSelect'){selectedMedia=el.value;render();return;}
+    if(el.hasAttribute('data-check')) {p=el.getAttribute('data-check')==='global'?state:find(state.projects,el.getAttribute('data-id'));a=p&&p[el.getAttribute('data-kind')];i=+el.getAttribute('data-index');if(a&&a[i]){a[i].d=el.checked;el.parentNode.classList.toggle('checked',el.checked);persist();if(get('projectProgress')&&p.shots)get('projectProgress').textContent=countDone(p.shots)+' / '+p.shots.length;}return;}
+    if(el.hasAttribute('data-pose')) {p=find(state.media,el.getAttribute('data-id'));a=p?find(p.players,el.getAttribute('data-player')):null;if(a){a.poses[+el.getAttribute('data-pose')]=el.checked;persist();var done=0;p.players.forEach(function(x){done+=x.poses.filter(Boolean).length;});get('mediaProgress').textContent=done+' / '+p.players.length*6+' photos';var bar=get('main').querySelector('.panel .progress span');if(bar)bar.style.width=(p.players.length?done/(p.players.length*6)*100:0)+'%';}return;}
+    if(el.hasAttribute('data-reel')) {p=find(state.interviews,el.getAttribute('data-id'));a=p?find(p.questions,el.getAttribute('data-question')):null;if(a){a[el.getAttribute('data-reel')]=el.checked;persist();}return;}
+    var f=closestAttr(el,'data-form');if(f&&f.getAttribute('data-form')==='log'&&el.name==='result') {var mapping={'Rendez-vous fixé':'RDV pris','Devis demandé':'Contacté','À rappeler':'Relance','Non joint':'Relance','Refus':'Perdu'};if(mapping[el.value])f.elements.status.value=mapping[el.value];}
+    if(el.id==='importFile') {var file=el.files&&el.files[0];if(!file)return;if(file.size>5000000){toast('Fichier trop volumineux : maximum 5 Mo.');return;}var reader=new FileReader();reader.onload=function(){parseImport(String(reader.result));};reader.onerror=function(){toast('Impossible de lire ce fichier.');};reader.readAsText(file);}
+    if(f===get('quoteForm')&&f){quoteDraft=quoteValues(f);updateCalc();}
   });
+  document.addEventListener('keydown',function(e){var modal=get('modalRoot').querySelector('.modal');if(!modal)return;if(e.key==='Escape'){closeModal();return;}if(e.key==='Tab'){var a=modal.querySelectorAll('a[href],button:not([disabled]),input:not([hidden]),select,textarea');if(!a.length)return;var first=a[0],last=a[a.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}});
+  get('menuBtn').addEventListener('click',function(){var open=get('sidebar').classList.toggle('open');this.setAttribute('aria-expanded',String(open));});
+  window.addEventListener('hashchange',function(){render();window.scrollTo(0,0);get('main').focus();});
+  window.addEventListener('storage',function(e){if(e.key===KEY&&e.newValue){try{if(get('modalRoot').children.length){blocked=true;storageNotice('Une autre fenêtre a modifié les données. Termine en exportant tes saisies, puis recharge la page.');}else{state=validateState(JSON.parse(e.newValue));lastRevision=state.updatedAt;render();toast('Données actualisées depuis une autre fenêtre.');}}catch(err){storageNotice('Une modification externe ne peut pas être lue. Recharge après avoir exporté tes données.');}}});
+  function toggleSession(i) {if(!state.sessions[today()])state.sessions[today()]=sessionData(today());var s=state.sessions[today()][i];if(s.completed){toast('Cette session est terminée pour aujourd’hui.');return;}if(s.running){s.seconds=elapsed(s);s.running=false;}else{Object.keys(state.sessions).forEach(function(d){state.sessions[d].forEach(function(other){if(other.running){other.seconds=elapsed(other);other.running=false;}});});s.startAt=Date.now();s.running=true;}persist();render();}
+  function tick(saveAllowed) {if(!state)return;var ss=sessionData(today()),changed=false,phase='';Object.keys(state.sessions).forEach(function(d){state.sessions[d].forEach(function(s){if(s.running&&elapsed(s)>=3600){s.seconds=3600;s.running=false;s.completed=true;changed=true;}});});if(changed){persist();if(saveAllowed!==false){if(page==='today')render();toast('Session terminée. Prépare ton bilan et tes relances.');}}ss.forEach(function(s,i){var t=get('timer-'+i),n=3600-elapsed(s);if(t)t.textContent=pad(Math.floor(n/60))+':'+pad(n%60);if(s.running){var min=elapsed(s)/60;phase=min<5?'En cours · prépare les contacts de cette session.':min<50?'En cours · démarches et comptes rendus après chaque contact.':'Dernières minutes · fixe les relances et les prochaines actions.';}});if(get('sessionPhase'))get('sessionPhase').textContent=phase;}
+  var offlineText='Cache hors ligne en préparation.',registration=null,hadController=!!(navigator.serviceWorker&&navigator.serviceWorker.controller),reloading=false;
+  function updateNetwork() {var el=get('networkState');el.textContent=navigator.onLine?'Sur cet appareil':'Hors connexion';el.className='status-pill'+(navigator.onLine?'':' offline');if(get('offlineStatus'))get('offlineStatus').textContent=offlineText;}
+  function initWorker() {
+    updateNetwork();window.addEventListener('online',updateNetwork);window.addEventListener('offline',updateNetwork);
+    if(!('serviceWorker' in navigator)||location.protocol==='file:'){offlineText='Ouvre la version HTTPS pour activer le mode hors ligne.';updateNetwork();return;}
+    navigator.serviceWorker.register('sw.js').then(function(reg){registration=reg;
+      function waiting(){if(reg.waiting){waitingWorker=reg.waiting;offlineText='Applique la mise à jour pour activer le cache de cette version.';updateNetwork();renderNotices();}}
+      waiting();reg.addEventListener('updatefound',function(){var worker=reg.installing;if(worker)worker.addEventListener('statechange',function(){if(worker.state==='installed')waiting();});});
+      return navigator.serviceWorker.ready;
+    }).then(function(){return caches.has('mf-tools-v3-'+D.version);}).then(function(ready){offlineText=waitingWorker?'Applique la mise à jour pour activer le cache de cette version.':ready?'Hors ligne prêt · les liens externes nécessitent Internet.':'Le cache de cette version est en préparation. Recharge après son installation.';updateNetwork();}).catch(function(){offlineText='Mode hors ligne indisponible. L’application reste utilisable avec Internet.';updateNetwork();});
+    navigator.serviceWorker.addEventListener('controllerchange',function(){if(waitingWorker&&hadController&&!reloading){reloading=true;location.reload();}hadController=true;});
+  }
+  function checkUpdate() {if(registration){registration.update().then(function(){toast(registration.waiting?'Une mise à jour est prête.':'Vérification effectuée.');if(registration.waiting){waitingWorker=registration.waiting;renderNotices();}}).catch(function(){toast('Vérification impossible sans connexion.');});}else toast('Ouvre la version HTTPS avec une connexion.');}
+  /* V3 — Formation : source privée, lecture progressive et actions métier. */
+  var formationView='chapters', formationSearch='', formationLimit=40, formationIndex=null, pendingFormation=null;
+  function formationBase() {return {map:null,marks:[],last:''};}
+  function validateMap(raw) {
+    object(raw);
+    var m={id:idOf(raw.id),title:str(raw.title,1000),sourceFile:str(raw.sourceFile,300),sourceSha256:str(raw.sourceSha256,100),nodes:[],links:[],groups:[]}, ids=Object.create(null), roots=0;
+    m.nodes=list(raw.nodes,10000).map(function(n){object(n);var id=idOf(n.id);if(ids[id])throw new Error('Sujet de formation en double.');var v={id:id,title:str(n.title,12000),parent:n.parent?idOf(n.parent):'',kind:choice(n.kind,['root','attached','detached','summary'],'attached')};ids[id]=v;if(!v.parent)roots++;return v;});
+    if(roots!==1||!ids[m.id]||ids[m.id].parent)throw new Error('Racine du mindmap invalide.');
+    m.nodes.forEach(function(n){var v=n,seen=Object.create(null),depth=0;while(v.parent){if(seen[v.id]||++depth>30)throw new Error('Le mindmap contient une boucle ou trop de niveaux.');seen[v.id]=true;v=ids[v.parent];if(!v)throw new Error('Un chapitre parent est absent.');}});
+    m.links=list(raw.links,2000).map(function(l){object(l);if(!ids[l.from]||!ids[l.to])throw new Error('Lien de formation incomplet.');return {from:idOf(l.from),to:idOf(l.to)};});
+    m.groups=list(raw.groups,2000).map(function(g){object(g);if(!ids[g.parent]||(g.topicId&&!ids[g.topicId]))throw new Error('Groupe de formation incomplet.');return {parent:idOf(g.parent),kind:choice(g.kind,['summaries','boundaries'],'boundaries'),range:str(g.range,100),topicId:g.topicId?idOf(g.topicId):''};});
+    return m;
+  }
+  function validateFormation(raw) {
+    if(!raw)return formationBase();object(raw);var f=formationBase(),seen=Object.create(null),ids=Object.create(null);
+    if(raw.map){f.map=validateMap(raw.map);f.map.nodes.forEach(function(n){ids[n.id]=true;});}
+    f.marks=list(raw.marks,10000).map(function(v){object(v);var id=idOf(v.id);if(seen[id]||!ids[id])throw new Error('Repère de formation invalide.');seen[id]=true;return {id:id,star:v.star===true,done:v.done===true,note:str(v.note,10000)};});
+    f.last=raw.last&&ids[raw.last]?idOf(raw.last):'';return f;
+  }
+  function fold(s) {s=String(s).toLowerCase();return (s.normalize?s.normalize('NFD').replace(/[\u0300-\u036f]/g,''):s).replace(/œ/g,'oe').replace(/[’']/g,' ');}
+  function fIndex() {
+    var map=state.formation.map;if(!map)return null;if(formationIndex&&formationIndex.map===map)return formationIndex;
+    var ix={map:map,nodes:Object.create(null),children:Object.create(null),paths:Object.create(null),search:Object.create(null),counts:Object.create(null)};
+    map.nodes.forEach(function(n){ix.nodes[n.id]=n;ix.children[n.id]=[];});
+    map.nodes.forEach(function(n){if(n.parent)ix.children[n.parent].push(n.id);});
+    function walk(id,path){var n=ix.nodes[id],count=1;ix.paths[id]=path;ix.search[id]=fold(n.title+' '+path.map(function(k){return ix.nodes[k].title;}).join(' '));ix.children[id].forEach(function(c){count+=walk(c,path.concat(id));});ix.counts[id]=count;return count;}
+    walk(map.id,[]);formationIndex=ix;return ix;
+  }
+  function fMark(id) {return find(state.formation.marks,id)||{id:id,star:false,done:false,note:''};}
+  function fSaveMark(id,patch) {var before=clone(state.formation),m=fMark(id);Object.keys(patch).forEach(function(k){m[k]=patch[k];});if(!find(state.formation.marks,id))state.formation.marks.push(m);if(!persist()){state.formation=before;return false;}return true;}
+  function fPath(id) {var ix=fIndex();return ix.paths[id].slice(1).map(function(k){return ix.nodes[k].title;}).join(' › ');}
+  function fRow(id) {var ix=fIndex(),n=ix.nodes[id],m=fMark(id);return '<button class="formation-row" data-action="formation-open" data-id="'+esc(id)+'"><span class="formation-row-icon">'+icon(ix.children[id].length?'bag':'film')+'</span><span class="row-main"><strong>'+esc(n.title)+'</strong><small>'+esc(fPath(id)||'Formation vidéo premium')+'</small></span><span class="formation-row-meta">'+(m.star?'★ ':'')+(m.done?'✓ ': '')+(ix.children[id].length?(ix.counts[id]-1)+' sujets':'Note')+'<span>↗</span></span></button>';}
+  function formationResults() {
+    var ix=fIndex();if(!ix)return '';var map=state.formation.map,words=fold(formationSearch).trim().split(/\s+/),ids;
+    if(formationSearch.trim())ids=map.nodes.filter(function(n){return n.id!==map.id&&words.every(function(w){return ix.search[n.id].indexOf(w)>=0;});}).sort(function(a,b){return (fold(b.title).indexOf(fold(formationSearch))>=0?1:0)-(fold(a.title).indexOf(fold(formationSearch))>=0?1:0);}).map(function(n){return n.id;});
+    else if(formationView==='stars')ids=state.formation.marks.filter(function(m){return m.star;}).map(function(m){return m.id;});
+    else if(formationView==='done')ids=state.formation.marks.filter(function(m){return m.done;}).map(function(m){return m.id;});
+    else ids=ix.children[map.id];
+    if(!ids.length)return empty('Aucun sujet pour le moment.',formationSearch?'Essaie un autre mot : interview, immobilier, objection…':'Ouvre un sujet pour le mettre en favori ou le marquer comme lu.');
+    return '<p class="small-text muted" role="status">'+ids.length+' '+(formationSearch?'résultats':formationView==='chapters'?'chapitres':'sujets')+'</p>'+ids.slice(0,formationLimit).map(fRow).join('')+(ids.length>formationLimit?'<div class="formation-more">'+btn('Afficher les suivants','formation-more',undefined,'secondary')+'</div>':'');
+  }
+  function formationShortcut(id,label) {return '<div class="formation-context">'+icon('spark')+'<span>'+esc(label)+'</span>'+btn('Ouvrir la formation','formation-jump',id,'small secondary')+'</div>';}
+  function renderFormation() {
+    var f=state.formation,ix=fIndex(),html=head('TA FORMATION, DANS TON ATELIER','Apprendre. Retrouver. Appliquer.','Retrouve une méthode au moment où tu en as besoin, puis adapte-la à ta mission.',btn(f.map?'Importer / actualiser':'Importer mon mindmap','formation-import',undefined,'secondary','download'));
+    if(!ix)return html+'<section class="formation-welcome panel"><div class="kicker">FORMATION VIDÉO PREMIUM</div><h2>Du mindmap à tes prochains tournages.</h2><p>Importe le dossier V3 fourni dans la conversation pour retrouver les 3 229 sujets de ta formation. La recherche, tes favoris et tes notes restent disponibles sur cet appareil.</p><div class="grid-three"><div><strong>Explorer</strong><p>13 grands chapitres, avec leurs sous-sujets et leurs liens.</p></div><div><strong>Retenir</strong><p>Des favoris, un suivi de lecture et tes propres notes.</p></div><div><strong>Appliquer</strong><p>Des points à ajouter à un projet, un prospect ou une interview.</p></div></div>'+btn('Choisir mon dossier V3','formation-import',undefined,'','download')+'<p class="help">Le fichier JSON s’importe une fois dans chaque navigateur. Une sauvegarde complète inclut ensuite ta formation.</p></section>';
+    var count=f.marks.filter(function(m){return m.done;}).length,stars=f.marks.filter(function(m){return m.star;}).length;
+    html+='<div class="formation-summary"><div><strong>'+f.map.nodes.length.toLocaleString('fr-FR')+'</strong><span>sujets conservés</span></div><div><strong>'+ix.children[f.map.id].length+'</strong><span>grands chapitres</span></div><div><strong>'+stars+'</strong><span>favoris</span></div><div><strong>'+count+'</strong><span>sujets marqués lus</span></div></div><p class="help">Notes de ta formation · exemples, tarifs et réglages à adapter à ta mission et à ton matériel.</p>';
+    html+='<div class="filters"><input id="formationSearch" type="search" aria-label="Rechercher dans toute la formation" placeholder="Interview, objections, immobilier, sport…" value="'+esc(formationSearch)+'">'+btn('Tout parcourir','formation-home',undefined,'secondary')+'</div>';
+    if(f.last&&!formationSearch&&formationView==='detail'&&ix.nodes[f.last])return html+formationDetail(f.last);
+    html+='<div class="chips">'+[['chapters','Les chapitres'],['stars','Mes favoris'],['done','Déjà lus']].map(function(a){return '<button class="chip'+(formationView===a[0]?' active':'')+'" data-action="formation-view" data-id="'+a[0]+'">'+a[1]+'</button>';}).join('')+'</div><section class="panel" id="formationResults">'+formationResults()+'</section>';
+    return html;
+  }
+  function formationDetail(id) {
+    var ix=fIndex(),n=ix.nodes[id],m=fMark(id),path=ix.paths[id].concat(id),children=ix.children[id];
+    var html='<div id="formationResults"><nav class="formation-breadcrumb" aria-label="Chemin dans la formation">'+path.map(function(k,i){return i===path.length-1?'<span aria-current="page">'+esc(ix.nodes[k].title)+'</span>':btn(i===0?'Formation':ix.nodes[k].title,'formation-open',k,'small subtle')+'<span aria-hidden="true">›</span>';}).join('')+'</nav><section class="panel formation-topic"><div class="panel-head"><div class="tag-list">'+badge(children.length?'Chapitre · '+(ix.counts[id]-1)+' sujets':'Note de formation')+(n.kind==='summary'?badge('Synthèse'):n.kind==='detached'?badge('Branche libre'):'')+'</div><div>'+btn(m.star?'★ Favori':'☆ Favori','formation-star',id,'small secondary')+' '+btn(m.done?'✓ Lu':'Marquer comme lu','formation-done',id,'small secondary')+'</div></div><h2 class="formation-title">'+esc(n.title)+'</h2><div class="formation-topic-actions">'+btn('Utiliser dans mon travail','formation-apply',id,'','plus')+btn('Copier ce sujet','formation-copy',id,'secondary','copy')+'</div>';
+    if(children.length)html+='<div class="formation-children">'+children.map(fRow).join('')+'</div>';
+    var related=state.formation.map.links.filter(function(l){return l.from===id||l.to===id;}).map(function(l){return l.from===id?l.to:l.from;});
+    if(related.length)html+='<h3 style="margin-top:24px">Liens du mindmap</h3>'+related.map(fRow).join('');
+    html+='</section><section class="panel"><h3>Ce que j’en retiens pour mon activité</h3><form data-form="formation-note" data-id="'+esc(id)+'">'+area('note','Ma note personnelle',m.note,4,'maxlength="10000" placeholder="Ce que je vais tester, adapter ou éviter sur ma prochaine mission…"')+'<button class="button secondary" type="submit">Enregistrer ma note</button></form></section></div>';return html;
+  }
+  function fOpen(id) {var ix=fIndex();if(!ix||!ix.nodes[id]){chooseImport('formation');return;}state.formation.last=id;formationSearch='';formationView=id===ix.map.id?'chapters':'detail';formationLimit=40;closeModal();navigate('formation');}
+  function fOutline(id,max) {var ix=fIndex(),out=[],overflow=false;function walk(k,path){var n=ix.nodes[k];if(!ix.children[k].length){out.push((path.length?path.join(' › ')+' : ':'')+n.title);if(out.length>max)overflow=true;return;}ix.children[k].forEach(function(c){if(!overflow)walk(c,k===id?path:path.concat(n.title));});}walk(id,[]);return {lines:out,overflow:overflow};}
+  function formationImport(raw) {
+    var incoming=validateFormation(raw);if(!incoming.map)throw new Error('Le fichier ne contient pas de mindmap.');pendingFormation=incoming;
+    openModal('Importer ta formation','<h3>'+esc(incoming.map.title)+'</h3><p>'+incoming.map.nodes.length+' sujets · '+incoming.map.links.length+' liens transversaux</p><p class="small-text muted">Le mindmap sera disponible ici, y compris hors connexion. Tes favoris et tes notes existants seront conservés pour les sujets présents dans cette version.</p>'+btn('Intégrer ce mindmap','formation-confirm',undefined,'wide'),true);
+  }
+  function mergeFormation(current,incoming) {
+    if(!incoming.map)return current;
+    if(current.map&&current.map.id!==incoming.map.id)throw new Error('Ce dossier contient une autre formation. Exporte tes données puis importe-la séparément.');
+    var f=clone(incoming),ids=Object.create(null);f.map.nodes.forEach(function(n){ids[n.id]=true;});
+    current.marks.forEach(function(m){if(!ids[m.id])throw new Error('Un sujet annoté est absent du nouveau mindmap. Conserve ta sauvegarde avant de changer de formation.');var existing=find(f.marks,m.id);if(existing){existing.note=m.note;existing.star=m.star;existing.done=m.done;}else f.marks.push(clone(m));});
+    if(ids[current.last])f.last=current.last;return f;
+  }
+  function fTargetOptions(kind) {var rows=kind==='lead'?state.leads:kind==='interview'?state.interviews:state.projects;return rows.map(function(p){return [p.id,p.name];});}
+  function formationApply(id) {
+    var n=fIndex().nodes[id],outline=fOutline(id,80);if(outline.overflow){toast('Ce chapitre est vaste. Ouvre un sous-chapitre pour choisir les points à utiliser.');return;}
+    openModal('Passer à l’action','<p class="small-text muted">Source : '+esc(n.title)+'. Relis et adapte les lignes avant de les ajouter.</p><form data-form="formation-apply" data-id="'+esc(id)+'"><div class="form-grid">'+select('destination','Destination',[['prep','Projet · préparation'],['shots','Projet · shotlist'],['delivery','Projet · montage / livraison'],['gear','Projet · matériel'],['lead','Prospect · notes'],['interview','Interview · questions']],'prep','id="formationDestination"')+select('target','Dossier',fTargetOptions('prep'),selectedProject,'required id="formationTarget"')+'</div><p class="help" id="formationTargetHelp">'+(state.projects.length?'Les lignes seront ajoutées. Tes notes et cases existantes sont conservées.':'Crée un tournage dans l’onglet Tournages, puis reviens sur ce sujet.')+'</p>'+area('lines','Points à utiliser · une ligne par point',outline.lines.join('\n'),10,'required maxlength="18000"')+actions('Ajouter à ce dossier')+'</form>');
+  }
+  function addChecksUnique(target,lines) {var added=0;lines.forEach(function(t){if(!target.some(function(c){return fold(c.t.trim())===fold(t.trim());})){target.push({t:t,d:false});added++;}});return added;}
+  function formationApplyForm(form) {
+    var kind=value(form,'destination'),id=value(form,'target'),source=form.getAttribute('data-id'),text=value(form,'lines').trim(),lines=text.split(/\r?\n/).map(function(s){return s.trim();}).filter(Boolean),before=clone(state),target;
+    if(!lines.length||lines.length>100||lines.some(function(s){return s.length>2000;})){toast('Prévois 1 à 100 lignes de 2 000 caractères maximum chacune.');return;}
+    target=find(kind==='lead'?state.leads:kind==='interview'?state.interviews:state.projects,id);if(!target){toast('Choisis un dossier existant.');return;}
+    var ref='Formation · '+fIndex().nodes[source].title,added=0;
+    if(kind==='lead') {var chunk=ref+'\n'+text;if(target.notes.indexOf(chunk)>=0){toast('Ces notes sont déjà dans ce contact.');return;}if((target.notes+'\n\n'+chunk).length>15000){toast('Les notes de ce contact sont trop longues pour cet ajout.');return;}target.notes+=(target.notes?'\n\n':'')+chunk;added=lines.length;}
+    else if(kind==='interview'){if(target.questions.length+lines.length>500){toast('Cette interview contient trop de sujets.');return;}lines.forEach(function(t){if(!target.questions.some(function(q){return fold(q.q)===fold(t);})){target.questions.push({id:uid('reel'),stage:'MOFU',q:t,hook:'',broll:'',cta:'',timecode:'',interview:false,illustration:false,edited:false,delivered:false});added++;}});}
+    else {if(['prep','shots','delivery','gear'].indexOf(kind)<0)return;if(target[kind].length+lines.length>500){toast('Cette checklist contient trop de lignes.');return;}added=addChecksUnique(target[kind],lines);}
+    if(!persist()){state=before;return;}closeModal();render();toast(added?added+' points ajoutés au dossier.':'Ces points étaient déjà présents.');
+  }
+  var workflows={
+    discovery:{name:'Préparer l’appel client',prep:['Définir l’objectif du film et le public visé','Demander les références ou vidéos appréciées','Confirmer le lieu, les accès et les personnes disponibles','Choisir les canaux, les formats et la durée des livrables','Identifier les messages, produits et gestes à montrer','Récupérer logo, charte et éléments utiles','Préciser musique, ton et inspirations avec le client','Fixer la date de livraison et la personne qui valide','Confirmer le périmètre, les retours et les déplacements']},
+    filmreels:{name:'Un film + 8 Reels · une journée',prep:['Échanger avec le client et définir le message du film','Observer quelques contenus du secteur et noter ce qui fonctionne','Préparer 8 sujets : visibilité, confiance et prise de contact','Lister 10 à 20 plans utiles au film et aux Reels','Faire préparer le lieu et confirmer les disponibilités','Tester caméra, stabilisateur, son et batteries la veille'],shots:['Interview principale en horizontal · cadre et son testés','Trois ou quatre phrases clés pour le film de présentation','Réponses aux huit sujets de Reels · cadrage prévu pour le vertical','Plan large du lieu · version horizontale puis verticale','Gestes et savoir-faire · large, moyen, serré','Produits et détails qui illustrent chaque réponse','Plans de conclusion · place pour le message et le contact'],delivery:['Relier chaque Reel à sa réponse et à ses images','Contrôler séparément les versions horizontales et verticales','Livrer le film et les huit Reels selon les formats convenus'],plan:'REPÈRE À ADAPTER · FILM + 8 REELS\n09:00–12:00 · Installation, test son, interview et phrases du film\n12:00–14:00 · Pause, contrôle des rushes et préparation des plans\n14:00–17:00 · Images d’illustration horizontales et verticales, compléments\nAvant départ · Vérification des plans, du son et des sauvegardes',interview:true},
+    edit:{name:'Montage · du dérushage à la livraison',delivery:['Vérifier les copies et organiser les dossiers de rushes','Sélectionner les réponses et plans qui servent le message','Construire une première version lisible sans effets superflus','Rythmer les séquences et varier les tailles de plans','Nettoyer les voix, ajouter les ambiances et équilibrer le son','Harmoniser les couleurs entre plans et caméras','Contrôler les licences musique et les éléments graphiques','Relire titres, sous-titres, noms et appel à l’action','Vérifier chaque export et centraliser le retour du client']},
+    immo:{name:'Immobilier · préparer la visite',prep:['Confirmer les pièces, atouts du bien et éléments à éviter','Faire ranger et préparer le bien avant l’arrivée','Définir le parcours, les formats et les besoins photo / vidéo','Repérer fenêtres, reflets et variations de lumière'],shots:['Façade, accès et situation du bien','Pièce principale · volume et circulation','Cuisine · vue d’ensemble et finitions','Chambres et salle de bains · cadrages soignés','Extérieurs et atouts particuliers','Dernier plan et coordonnées convenues']},
+    sport:{name:'Sport · préparer le Media Day',prep:['Confirmer la liste des joueurs et les créneaux de passage','Préparer tenues, ballons, fond et espace de prise de vue','Tester la lumière et conserver les mêmes repères au sol','Confirmer les usages, les formats et les accords nécessaires'],shots:['Portrait buste de chaque joueur','Bras croisés et plein pied avec ballon','Expression et célébration','Pose avec marge pour détourage','Photo de groupe et coulisses'],delivery:['Relier chaque fichier au nom du joueur','Vérifier les six poses et les cadrages','Préparer les exports aux dimensions convenues avec le club']}
+  };
+  function workflowPreview(key) {var w=workflows[key],html='';['prep','shots','delivery'].forEach(function(k){if(w[k])html+='<h3>'+({prep:'Préparation',shots:'Plans à ajouter',delivery:'Montage & livraison'})[k]+'</h3><ul class="workflow-list">'+w[k].map(function(t){return '<li>'+esc(t)+'</li>';}).join('')+'</ul>';});if(w.plan)html+='<h3>Déroulé proposé</h3><p class="pre-wrap small-text">'+esc(w.plan)+'</p>';if(w.interview)html+='<p class="small-text">Une interview liée de huit sujets sera créée si le projet n’en possède pas encore.</p>';return html;}
+  function workflowForm(id) {var p=find(state.projects,id);if(!p)return;openModal('Ajouter une méthode au projet','<p class="small-text muted">'+esc(p.name)+' · les points déjà présents et les cases cochées sont conservés.</p><form data-form="workflow" data-id="'+esc(id)+'">'+select('method','Méthode',Object.keys(workflows).map(function(k){return [k,workflows[k].name];}),'discovery','id="workflowMethod"')+'<div class="workflow-preview" id="workflowPreview">'+workflowPreview('discovery')+'</div>'+actions('Ajouter au projet')+'</form>');}
+  function workflowApply(form) {var p=find(state.projects,form.getAttribute('data-id')),w=workflows[value(form,'method')],before=clone(state),added=0;if(!p||!w)return;for(var k in w){if(['prep','shots','delivery'].indexOf(k)>=0){if(p[k].length+w[k].length>500){toast('Cette checklist est pleine.');state=before;return;}added+=addChecksUnique(p[k],w[k]);}}if(w.plan&&p.plan.indexOf(w.plan)<0){if((p.plan+'\n\n'+w.plan).length>15000){state=before;toast('Le déroulé est trop long pour ajouter ce modèle.');return;}p.plan+=(p.plan?'\n\n':'')+w.plan;added++;}if(w.interview&&!state.interviews.some(function(i){return i.projectId===p.id;})){state.interviews.push({id:uid('interview'),name:p.name+' · 8 Reels',projectId:p.id,notes:'À adapter avec les mots du client. Une réponse claire et des images par sujet.',questions:questions()});added++;}if(!persist()){state=before;return;}closeModal();render();toast(added?'Méthode ajoutée au projet.':'Cette méthode est déjà dans le projet.');}
+  function projectPreparation(p) {return '<section class="panel preparation-panel"><div class="panel-head"><div><div class="kicker">AVANT LE TOURNAGE</div><h2>Ma préparation</h2></div>'+btn('Ajouter une méthode','workflow',p.id,'small secondary','plus')+'</div>'+(p.prep.length?checkList(p.prep,'project',p.id,'prep',true):'<p class="small-text muted">Prépare l’appel client, une journée film + Reels, un reportage immobilier ou un Media Day.</p>')+checkAdder('project',p.id,'prep','Ajouter un point de préparation')+'</section>';}
+  function handleFormationAction(action,id) {
+    if(action==='workflow'){workflowForm(id);return true;}
+    if(action.indexOf('formation-')!==0)return false;
+    if(action==='formation-import'){chooseImport('formation');return true;}
+    if(action==='formation-open'||action==='formation-jump'){fOpen(id);return true;}
+    if(action==='formation-home'){formationView='chapters';formationSearch='';formationLimit=40;render();return true;}
+    if(action==='formation-view'){formationView=id;formationSearch='';formationLimit=40;render();return true;}
+    if(action==='formation-more'){formationLimit+=40;get('formationResults').innerHTML=formationResults();return true;}
+    if(action==='formation-star'||action==='formation-done'){var patch={},k=action==='formation-star'?'star':'done';patch[k]=!fMark(id)[k];if(fSaveMark(id,patch))render();return true;}
+    if(action==='formation-copy'){var out=fOutline(id,80);if(out.overflow)toast('Ouvre un sous-chapitre pour copier une sélection précise.');else copy(fIndex().nodes[id].title+'\n\n'+out.lines.join('\n'));return true;}
+    if(action==='formation-apply'){formationApply(id);return true;}
+    if(action==='formation-confirm'&&pendingFormation){var before=clone(state.formation);try{state.formation=mergeFormation(state.formation,pendingFormation);if(!persist()){state.formation=before;return true;}}catch(e){state.formation=before;toast(e.message);return true;}pendingFormation=null;formationIndex=null;formationView='chapters';closeModal();navigate('formation');toast('Ta formation est intégrée.');return true;}
+    return true;
+  }
+
+  initialize();
 })();
