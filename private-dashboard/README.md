@@ -2,6 +2,10 @@
 
 Statut : CODE PRÉPARÉ — NON DÉPLOYÉ. Aucun secret ni aucune donnée personnelle n'est ajouté au dépôt public.
 
+## État d'intégration Cloudflare — 15 novembre 2026
+
+Le Worker `mf-studio-ipad-prive` a été créé depuis GitHub, mais le premier déploiement était celui de `main` (fichiers statiques). La branche de production cible est `feat/private-ipad-dashboard-20261115` avec dossier racine `/private-dashboard`. Le namespace KV `MF_STUDIO_PRIVATE` est configuré dans `wrangler.toml`. Ce changement de README déclenche un nouveau commit sur la branche cible pour demander une construction avec les réglages actuellement enregistrés. Un déploiement effectif reste à vérifier dans Cloudflare, puis les secrets de jumelage et d'accès Google sont à installer. Aucune donnée personnelle ne doit être publiée dans le site statique.
+
 ## Ce qui est prêt
 
 Ce nouveau Worker protège un écran situé sur une AUTRE adresse que le GitHub Pages public :
