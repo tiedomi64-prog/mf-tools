@@ -36,7 +36,46 @@ function applyAgenda(data){
   }
 }
 function applyPoker(d){
-  var p=d.poker||{},money=percent(p.current_eur,p.goal_eur),hours=percent(p.hours_done,p.hours_goal),days=percent(p.days_done,p.days_goal);
+  var p=d.poker||{};
+  if(p.unit==='games'&&isNum(p.current_games)&&isNum(p.goal_games)){
+    var pc=percent(p.current_games,p.goal_games);
+    var remain=Math.max(0,p.goal_games-p.current_games);
+    var from=currentDate();
+    if(typeof p.start_date==='string'&&from<p.start_date)from=p.start_date;
+    var days=typeof p.end_date==='string'?Math.floor((Date.parse(p.end_date+'T00:00:00Z')-Date.parse(from+'T00:00:00Z'))/86400000)+1:0;
+    var pace=days>0?Math.ceil(remain/days):null;
+    txt('pokerTitle',p.demo===true?'CHALLENGE POKER · TEST':'CHALLENGE POKER');
+    el('pokerGoal').parentNode.firstChild.textContent='Objectif 15–30 nov.';
+    el('pokerResult').parentNode.firstChild.nodeValue='Parties : ';
+    el('pokerHours').parentNode.firstChild.nodeValue='Restantes : ';
+    el('pokerDays').parentNode.firstChild.nodeValue='Cadence : ';
+    txt('pokerAmount',value(p.current_games));
+    txt('pokerGoalAmount','/ '+value(p.goal_games)+' parties');
+    txt('pokerGoal',value(p.goal_games)+' parties');
+    txt('pokerResult',value(p.current_games)+' / '+value(p.goal_games));
+    txt('pokerPercentage',pctText(pc));
+    txt('pokerResultPct',pctText(pc));
+    txt('pokerHours',value(remain)+' parties');
+    txt('pokerHoursPct','');
+    txt('pokerDays',pace===null?'—':value(pace)+' parties/jour');
+    txt('pokerDaysPct','');
+    progress('pokerResultBar',pc);
+    progress('pokerHoursBar',null);
+    progress('pokerDaysBar',null);
+    el('pokerHoursBar').parentNode.style.display='none';
+    el('pokerDaysBar').parentNode.style.display='none';
+    el('pokerDonut').style.background='conic-gradient(from 0deg,#e3a05f 0%,#e3a05f '+Math.max(0,Math.min(100,pc))+'%,#516451 '+Math.max(0,Math.min(100,pc))+'%,#516451 100%)';
+    el('pokerDonut').setAttribute('aria-label',(p.demo===true?'Test fictif : ':'')+value(p.current_games)+' parties sur '+value(p.goal_games));
+    return;
+  }
+  txt('pokerTitle','CHALLENGE POKER');
+  el('pokerGoal').parentNode.firstChild.textContent='Objectif mensuel';
+  el('pokerResult').parentNode.firstChild.nodeValue='Résultat : ';
+  el('pokerHours').parentNode.firstChild.nodeValue='Volume : ';
+  el('pokerDays').parentNode.firstChild.nodeValue='Discipline : ';
+  el('pokerHoursBar').parentNode.style.display='';
+  el('pokerDaysBar').parentNode.style.display='';
+  var money=percent(p.current_eur,p.goal_eur),hours=percent(p.hours_done,p.hours_goal),days=percent(p.days_done,p.days_goal);
   txt('pokerAmount',value(p.current_eur,' €'));
   txt('pokerGoalAmount','/ '+value(p.goal_eur,' €'));
   txt('pokerGoal',value(p.goal_eur,' €'));
