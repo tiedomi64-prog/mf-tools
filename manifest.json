@@ -1,11 +1,19 @@
 {
-  "name": "MF Tools · L’atelier",
-  "short_name": "MF Tools",
+  "name": "MF CONTROL — Tableau de bord",
+  "short_name": "MF Control",
+  "description": "Espace de pilotage personnel MF Studio",
   "lang": "fr",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#f4f2ec",
-  "theme_color": "#202420",
-  "icons": [{"src":"icon.png","sizes":"512x512","type":"image/png"}]
+  "background_color": "#17201f",
+  "theme_color": "#17201f",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
 }

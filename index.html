@@ -2,38 +2,49 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#202420">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#17201f">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="MF Tools">
-  <meta name="description" content="Un atelier pour les vidéastes. Prospecter, préparer, tourner et livrer.">
-  <title>MF Tools V3 · L’atelier</title>
-  <link rel="apple-touch-icon" href="icon.png">
-  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MF Control">
+  <meta name="description" content="Centre de pilotage personnel MF Studio : agenda, projets, prospection et objectifs.">
+  <title>MF CONTROL — Tableau de bord</title>
+  <link rel="icon" type="image/svg+xml" href="icon.svg">
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="style.css?v=3.0.0">
+  <link rel="stylesheet" href="style.css?v=4.0.0">
 </head>
 <body>
-  <a class="skip" href="#main">Aller au contenu</a>
-  <aside id="sidebar" class="sidebar">
-    <a href="#today" class="brand"><span class="monogram">MF<span class="brand-dot"></span></span><span>TOOLS<span class="version">L’ATELIER · VERSION 03</span></span></a>
-    <div class="nav-label">MON ESPACE DE TRAVAIL</div>
-    <nav id="navigation" aria-label="Navigation principale"></nav>
-    <div class="sidebar-bottom"><div class="portrait">MF</div><div><strong id="profileName">Mon activité</strong><span id="profileLocation">Vidéaste indépendant</span></div><span class="live-dot" aria-hidden="true"></span></div>
-  </aside>
-  <div class="workspace">
-    <header class="topbar"><button id="menuBtn" class="icon-button mobile-only" aria-label="Ouvrir le menu" aria-expanded="false">☰</button><div class="breadcrumb">L’atelier <span>/</span> <strong id="pageLabel">Aujourd’hui</strong></div><div class="top-status"><span id="networkState" class="status-pill">Sur cet appareil</span><button class="button small subtle" data-action="backup" title="Exporter une sauvegarde">Sauvegarder</button></div></header>
-    <div id="notices" aria-live="polite"></div>
-    <main id="main" tabindex="-1"></main>
-    <footer class="footer"><span>MF TOOLS <b>03</b> · Les artisans de votre image.</span><span id="saveState" role="status">Données sur cet appareil</span></footer>
+  <div class="shell">
+    <aside class="sidebar" id="sidebar">
+      <a class="brand" href="#home" aria-label="MF Control, accueil">
+        <span class="brand-symbol" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+        <span class="brand-text"><strong>MF <em>CONTROL</em></strong><small>ESPACE DE PILOTAGE</small></span>
+      </a>
+      <div class="nav-overline">TABLEAU DE BORD</div>
+      <nav id="navigation" aria-label="Navigation principale"></nav>
+      <div class="sidebar-foot">
+        <span class="sync-dot"></span>
+        <div><strong>Mode local</strong><small>Données sur cet appareil</small></div>
+      </div>
+    </aside>
+    <div class="app-content">
+      <header class="topbar">
+        <button class="mobile-menu icon-button" data-action="menu" aria-label="Afficher le menu">☰</button>
+        <div class="crumb">MF STUDIO <span>/</span> <b id="crumbTitle">VUE D’ENSEMBLE</b></div>
+        <div class="top-actions">
+          <span class="privacy-pill"><span class="dot"></span> Sans synchronisation</span>
+          <button class="button button-primary top-add" data-action="new-task">＋ Nouvelle tâche</button>
+        </div>
+      </header>
+      <main id="main" tabindex="-1"></main>
+      <footer class="footer"><span>MF CONTROL <b>01</b> · L’artisan de votre image.</span><span>Version 1.0 · GitHub Pages</span></footer>
+    </div>
   </div>
-  <div id="modalRoot"></div>
-  <div id="toast" role="status" aria-live="polite"></div>
-  <div id="printArea"></div>
-  <input type="file" id="importFile" accept="application/json,.json" hidden>
-  <noscript><p class="notice">Active JavaScript dans Safari pour utiliser MF Tools.</p></noscript>
-  <script src="data.js?v=3.0.0"></script>
-  <script src="app.js?v=3.0.0"></script>
+  <div id="mobileShade" class="mobile-shade" data-action="close-menu"></div>
+  <div id="dialog" class="dialog-layer" aria-hidden="true"></div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <input id="importFile" type="file" accept=".json,application/json" hidden>
+  <noscript><p>Cette application nécessite JavaScript.</p></noscript>
+  <script src="app.js?v=4.0.0"></script>
 </body>
 </html>
