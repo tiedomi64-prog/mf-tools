@@ -7,7 +7,7 @@ workers_dev = true
 # À remplacer par l'ID retourné par: npx wrangler kv namespace create STORE
 [[kv_namespaces]]
 binding = "STORE"
-id = "REMPLACER_PAR_ID_NAMESPACE_KV"
+id = "578adb0680f14ae1928eb97bd00c3cb4"
 
 [assets]
 directory = "./site"
