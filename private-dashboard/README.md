@@ -20,8 +20,8 @@ L'horloge et la météo fonctionnent comme sur le site actuel.
 - Aucune donnée sensible ne transite par dashboard.json du GitHub public.
 - Pas de service worker ni de stockage local de données privées dans la version iPad.
 - Si les cookies sont effacés, il faut exceptionnellement refaire l'appairage.
-- En cas de perte ou vol de l'iPad, révoquer toutes les sessions en remplaçant le
-  namespace KV lié, puis reconnecter le nouvel appareil.
+- En cas de perte ou vol de l'iPad, révoquer les sessions par POST /api/reset-pair
+  avec WRITE_TOKEN (incrément de génération des sessions), puis réactiver le bon appareil.
 
 ## Sources de vérité
 
@@ -111,4 +111,5 @@ le Worker Cloudflare et réouvrir le GitHub Pages existant.
 
 Aucun compte Cloudflare ni accès Google Cloud n'est connecté à cet agent.
 Sans le provisioning unique du compte, du namespace KV, des secrets et des partages
-autorisés, le Worker n'est PAS encore déployé. Une fois en service, l'iPad reste passif.
+autorisés, le Worker n'est PAS encore déployé. Une fois en service, l'iPad reste passif. Les tests GitHub Actions valident syntaxe et
+contrôles de base, pas la compatibilité réelle Safari ou les droits Google/Cloudflare.
