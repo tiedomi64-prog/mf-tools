@@ -1,28 +1,55 @@
-# MF CONTROL — Tableau de bord iPad
+# MF Studio — écran iPad paysage
 
-Nouvelle application indépendante créée en remplacement de MF Tools V3 sur le même dépôt GitHub Pages.
+Tableau de bord **mono-écran**, sans menu et sans interaction à l'écran. Il remplace l'ancien MF Tools sur la même adresse GitHub Pages :
+https://tiedomi64-prog.github.io/mf-tools/
 
-## Démarrage
-- Site : https://tiedomi64-prog.github.io/mf-tools/
-- Sur iPad : ouvrir dans Safari → Partager → **Sur l'écran d'accueil**.
-- Le site est statique : \`index.html\`, \`style.css\`, \`app.js\`, \`manifest.json\`, \`sw.js\`.
+## Éléments en direct
+- Horloge et date : fuseau Europe/Paris, mises à jour toutes les secondes.
+- Météo de Saint-Justin (Landes, 40240) : API Open-Meteo, ~43.9816, -0.2300, température actuelle et températures max/min du jour, relecture toutes les 15 minutes (et au retour sur l'onglet). Météo mise en cache hors connexion. Il s'agit de données météo **actualisées régulièrement**, pas d'une mesure en continu.
+- Agenda, challenge poker, R1/R2 et priorités : lecture du fichier \`dashboard.json\` toutes les 5 minutes (et lorsque l'iPad reprend le focus).
 
-## Fonctions de cette V1
-- Accueil avec indicateurs calculés depuis les données locales.
-- Agenda manuel, tâches avec dates et catégories, projets avec statuts, prospects avec étapes, challenges à compteur.
-- Sept espaces configurables, raccourcis personnels, export/import JSON.
-- Adaptation tablette / téléphone / ordinateur, cache de l'interface hors ligne.
+## Transmission du directeur des opérations
+Les contenus opérationnels sont centralisés dans un **seul fichier** : \`dashboard.json\`. L'application le lit et l'affiche automatiquement après publication sur GitHub Pages.
 
-## Confidentialité et limites
-**Le dépôt et ses fichiers sont publics.** Aucune donnée personnelle n'est inscrite dans le code ou envoyée à GitHub.
-Les données utilisateur sont enregistrées dans localStorage sous \`mf_control_v1\`. Elles ne sont **pas synchronisées** d'un appareil à l'autre, ni avec Google Agenda, ChatGPT ou le CRM. Sauvegarder régulièrement avec Réglages → Exporter JSON.
-La conservation locale dépend du navigateur et peut être supprimée par Safari ou lors d'une réinitialisation. Safari et une web-app ajoutée à l'écran d'accueil peuvent avoir des stockages distincts.
+### Contrat JSON
+\`\`\`json
+{
+  "schema": "mf-screen/v1",
+  "updatedAt": "2026-11-15T17:00:00+01:00",
+  "agenda": {
+    "date": "2026-11-15",
+    "items": [
+      {"time": "09:00", "title": "Exemple de rendez-vous"}
+    ]
+  },
+  "poker": {
+    "goal_eur": 3000,
+    "current_eur": 1240,
+    "hours_done": 22,
+    "hours_goal": 50,
+    "days_done": 12,
+    "days_goal": 20
+  },
+  "commercial": {
+    "period": "novembre 2026",
+    "r1": 14,
+    "r2": 5,
+    "objective_r1": 20
+  },
+  "priorities": ["Exemple de priorité 1", "Exemple de priorité 2"]
+}
+\`\`\`
 
-Pour une synchronisation automatique future : utiliser une authentification et un service backend sécurisé ; **ne jamais publier de clés API privées ni de données clients dans le dépôt GitHub Pages**.
+**Ces chiffres sont des exemples de format UNIQUEMENT :** la version déployée est volontairement vide, pour ne pas inventer de valeurs personnelles. L'agenda ne montre que les rendez-vous portant la **date du jour en Europe/Paris** : une date antérieure est présentée comme « mise à jour en attente ».
 
-## Identité visuelle
-Direction inspirée du BRAND-GUIDE MF Studio validé le 25 octobre 2026 : charbon, cuivre/ambre, lin, vert pin et typographies Barlow Condensed / Montserrat / IBM Plex Mono.
-L'icône de tableau de bord est un repère de cadrage générique, **pas le monogramme MF officiel**.
+### Processus futur
+Le directeur des opérations peut préparer les valeurs JSON et les transmettre dans la conversation où l'agent est autorisé à modifier GitHub. Sur instruction explicite, l'assistant remplace \`dashboard.json\` ; le panneau récupère les modifications lors de sa prochaine actualisation. Aucune mise à jour récurrente ou autonome n'est activée par la publication de ce code.
 
-## Historique
-L'ancienne version de MF Tools reste récupérable par l'historique Git du dépôt. Les anciennes clés de stockage local de MF Tools ne sont ni importées ni effacées automatiquement.
+## Confidentialité importante
+**Le dépôt GitHub est public : \`dashboard.json\` sera public lui aussi.** Ne publiez pas dans ce fichier d'informations privées (noms de clients, adresses, rendez-vous personnels, résultats confidentiels, etc.) sans avoir décidé consciemment de les rendre publics. Pour alimenter le tableau avec des données privées, il faudra un système de données authentifié, distinct de GitHub Pages.
+
+## Technique
+- Fichiers : \`index.html\`, \`style.css\`, \`app.js\`, \`dashboard.json\`, \`manifest.json\`, \`sw.js\`, \`icon.svg\`.
+- Style inspiré du guide MF Studio (charbon, cuivre, lin, vert pin, Barlow Condensed, Montserrat, IBM Plex Mono). Le petit « MF » est typographique : **ce n'est pas le logo vectoriel officiel**.
+- Sur iPad : Safari → Partager → Sur l'écran d'accueil. L'affichage est conçu pour le paysage (1024×768 et autres écrans).
+- Mode hors ligne partiel : dernière météo et dernier fichier de données valides sauvegardés sur l'appareil.

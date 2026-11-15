@@ -1,0 +1,23 @@
+{
+  "schema": "mf-screen/v1",
+  "updatedAt": null,
+  "agenda": {
+    "date": null,
+    "items": []
+  },
+  "poker": {
+    "goal_eur": null,
+    "current_eur": null,
+    "hours_done": null,
+    "hours_goal": null,
+    "days_done": null,
+    "days_goal": null
+  },
+  "commercial": {
+    "period": null,
+    "r1": null,
+    "r2": null,
+    "objective_r1": null
+  },
+  "priorities": []
+}

@@ -2,49 +2,108 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#17201f">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#eee8de">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="MF Control">
-  <meta name="description" content="Centre de pilotage personnel MF Studio : agenda, projets, prospection et objectifs.">
-  <title>MF CONTROL — Tableau de bord</title>
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="MF Studio">
+  <meta name="description" content="Tableau de bord d'affichage MF Studio : horloge, météo, agenda, challenge poker, suivi commercial et priorités.">
+  <title>MF Studio · Tableau de bord</title>
   <link rel="icon" type="image/svg+xml" href="icon.svg">
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="style.css?v=4.0.0">
+  <link rel="stylesheet" href="style.css?v=5.0.0">
 </head>
 <body>
-  <div class="shell">
-    <aside class="sidebar" id="sidebar">
-      <a class="brand" href="#home" aria-label="MF Control, accueil">
-        <span class="brand-symbol" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
-        <span class="brand-text"><strong>MF <em>CONTROL</em></strong><small>ESPACE DE PILOTAGE</small></span>
-      </a>
-      <div class="nav-overline">TABLEAU DE BORD</div>
-      <nav id="navigation" aria-label="Navigation principale"></nav>
-      <div class="sidebar-foot">
-        <span class="sync-dot"></span>
-        <div><strong>Mode local</strong><small>Données sur cet appareil</small></div>
+  <main class="dashboard" aria-label="Tableau de bord MF Studio">
+    <header class="masthead" aria-label="MF Studio">
+      <div class="top-mark" aria-hidden="true">MF</div>
+      <div class="brand-row"><span class="rule"></span><h1>MF STUDIO</h1><span class="rule"></span></div>
+      <div class="brand-sub">MATTHIEU FONTA</div>
+    </header>
+
+    <section class="top-section" aria-label="Heure et météo">
+      <div class="clock-zone">
+        <div id="clock" class="clock" aria-label="Heure à Paris">--:--</div>
+        <div class="clock-underline"></div>
+        <div id="date" class="date">Chargement de la date…</div>
+        <div class="scenery scenery-top" aria-hidden="true"></div>
       </div>
-    </aside>
-    <div class="app-content">
-      <header class="topbar">
-        <button class="mobile-menu icon-button" data-action="menu" aria-label="Afficher le menu">☰</button>
-        <div class="crumb">MF STUDIO <span>/</span> <b id="crumbTitle">VUE D’ENSEMBLE</b></div>
-        <div class="top-actions">
-          <span class="privacy-pill"><span class="dot"></span> Sans synchronisation</span>
-          <button class="button button-primary top-add" data-action="new-task">＋ Nouvelle tâche</button>
+      <article class="weather-card" aria-label="Météo Saint-Justin">
+        <div class="weather-icon" id="weatherIcon" data-condition="partly" aria-hidden="true">
+          <svg viewBox="0 0 150 128" role="presentation" focusable="false">
+            <g class="sun"><circle cx="95" cy="49" r="27" fill="#e6a655"/><path d="M95 8V0M95 98v-8M136 49h-10M54 49H44M125 19l-8 8M73 71l-8 8M125 79l-8-8M73 27l-8-8" stroke="#e8a35e" stroke-width="7" stroke-linecap="round" fill="none"/></g>
+            <g class="rain"><path d="M44 101l-8 13M70 101l-8 13M96 101l-8 13" stroke="#9ec1cf" stroke-width="6" stroke-linecap="round"/></g>
+            <path class="cloud" d="M37 99C18 99 10 87 10 71c0-16 13-28 29-28 4 0 8 1 12 3 8-20 33-30 52-14 8 7 12 14 13 24 15 0 26 10 26 23 0 12-11 20-25 20Z" fill="#f4f0e8" stroke="rgba(25,35,32,.12)" stroke-width="2"/>
+          </svg>
         </div>
-      </header>
-      <main id="main" tabindex="-1"></main>
-      <footer class="footer"><span>MF CONTROL <b>01</b> · L’artisan de votre image.</span><span>Version 1.0 · GitHub Pages</span></footer>
-    </div>
-  </div>
-  <div id="mobileShade" class="mobile-shade" data-action="close-menu"></div>
-  <div id="dialog" class="dialog-layer" aria-hidden="true"></div>
-  <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <input id="importFile" type="file" accept=".json,application/json" hidden>
-  <noscript><p>Cette application nécessite JavaScript.</p></noscript>
-  <script src="app.js?v=4.0.0"></script>
+        <div class="weather-info">
+          <div class="weather-place">Saint-Justin</div>
+          <div id="temp" class="weather-temp">—°</div>
+          <div id="weatherRange" class="weather-range">Max. —° · Min. —°</div>
+          <div id="weatherStatus" class="weather-status">Chargement météo…</div>
+        </div>
+        <div class="weather-mountains" aria-hidden="true"></div>
+      </article>
+    </section>
+
+    <section class="cards-grid" aria-label="Suivis de la journée">
+      <article class="card card-agenda" aria-labelledby="agendaTitle">
+        <div class="card-heading"><span class="icon" aria-hidden="true">▦</span><h2 id="agendaTitle">AGENDA DU JOUR</h2><span class="thin-rule"></span></div>
+        <div id="agendaList" class="agenda-list"><p class="placeholder">En attente de mise à jour</p></div>
+      </article>
+
+      <article class="card card-poker" aria-labelledby="pokerTitle">
+        <div class="card-heading dark-heading"><span class="icon spade" aria-hidden="true">♤</span><h2 id="pokerTitle">CHALLENGE POKER</h2><span class="thin-rule"></span></div>
+        <div class="poker-content">
+          <div class="donut-wrap">
+            <div id="pokerDonut" class="donut" role="img" aria-label="Avancement du challenge poker : non renseigné">
+              <div class="donut-inner">
+                <div id="pokerAmount" class="donut-amount">— €</div>
+                <div id="pokerGoalAmount" class="donut-goal">/ — €</div>
+                <div id="pokerPercentage" class="donut-percent">— %</div>
+              </div>
+            </div>
+          </div>
+          <div class="poker-details">
+            <div class="poker-line poker-target"><span>Objectif mensuel</span><strong id="pokerGoal">— €</strong></div>
+            <div class="progress-group">
+              <div class="metric-line"><span>Résultat : <strong id="pokerResult">— €</strong></span><span id="pokerResultPct">— %</span></div>
+              <div class="track"><span id="pokerResultBar" class="fill fill-copper"></span></div>
+            </div>
+            <div class="progress-group">
+              <div class="metric-line"><span>Volume : <strong id="pokerHours">— h / — h</strong></span><span id="pokerHoursPct">— %</span></div>
+              <div class="track"><span id="pokerHoursBar" class="fill fill-lime"></span></div>
+            </div>
+            <div class="progress-group">
+              <div class="metric-line"><span>Discipline : <strong id="pokerDays">— / — jours</strong></span><span id="pokerDaysPct">— %</span></div>
+              <div class="track"><span id="pokerDaysBar" class="fill fill-pine"></span></div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="card card-sales" aria-labelledby="salesTitle">
+        <div class="card-heading"><span class="icon handshake" aria-hidden="true">↗</span><h2 id="salesTitle">SUIVI COMMERCIAL</h2><span class="thin-rule"></span></div>
+        <div class="sales-body">
+          <div class="sales-target">Objectif R1 : <strong id="salesGoal">—</strong></div>
+          <div class="sales-counts">
+            <div class="sales-cell">R1 <strong id="r1Count">—</strong></div>
+            <div class="sales-cell">R2 <strong id="r2Count">—</strong></div>
+          </div>
+          <div class="sales-progress">Avancement <strong id="salesPercent">— %</strong></div>
+          <div class="sales-track"><span id="salesBar"></span></div>
+          <div id="salesSub" class="sales-sub">Données à actualiser</div>
+        </div>
+      </article>
+    </section>
+
+    <section class="priority-card" aria-labelledby="priorityTitle">
+      <div class="priority-title"><span class="target-icon" aria-hidden="true">◎</span><h2 id="priorityTitle">PRIORITÉ DU JOUR</h2></div>
+      <div id="priorities" class="priority-list"><p class="priority-empty">Les priorités seront affichées ici.</p></div>
+      <div class="priority-scenery" aria-hidden="true"></div>
+    </section>
+    <div id="dataStatus" class="sr-only" aria-live="polite">Chargement des données du tableau de bord.</div>
+  </main>
+  <script src="app.js?v=5.0.0"></script>
 </body>
 </html>

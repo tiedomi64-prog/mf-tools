@@ -1,111 +1,105 @@
 (function(){
 'use strict';
-var KEY='mf_control_v1';
-var NAV=[['home','Vue d’ensemble','◫'],['agenda','Agenda','▦'],['tasks','Tâches','✓'],['projects','Projets','◇'],['sales','Commercial','◎'],['goals','Challenges','◉'],['agents','Mes espaces','▧'],['settings','Réglages','⚙']];
-var AGENTS=[['Pilotage','Direction & organisation','01'],['Commercial','Prospection & rendez-vous','02'],['Administratif','Devis & facturation','03'],['Marketing','Contenus & communication','04'],['Postproduction vidéo','Montage & étalonnage','05'],['Postproduction photo','Tri & retouche','06'],['Media Day','Offres & production','07']];
-var defaultData={version:1,tasks:[],events:[],projects:[],leads:[],goals:[],agentLinks:{},shortcuts:[]};
-var state=readData(),page=(location.hash||'#home').substring(1),toastTimer=null;
-function element(id){return document.getElementById(id);}
-function esc(s){return String(s===undefined||s===null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
-function id(){return String(new Date().getTime())+'-'+String(Math.floor(Math.random()*100000));}
-function pad(x){return x<10?'0'+x:String(x);}
-function isoDay(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
-function today(){return isoDay(new Date());}
-function friendly(iso,opts){if(!iso)return 'Sans date';var a=String(iso).split('-');if(a.length<3)return iso;var d=new Date(+a[0],+a[1]-1,+a[2]);return d.toLocaleDateString('fr-FR',opts||{day:'numeric',month:'long'});}
-function fmtDay(iso){return friendly(iso,{weekday:'short',day:'numeric',month:'short'});}
-function monthOf(iso){return friendly(iso,{month:'short'});}
-function dayOf(iso){return (iso||'').split('-')[2]||'--';}
-function byDate(a,b){return (a.date||a.due||'9999-99-99').localeCompare(b.date||b.due||'9999-99-99')||(a.time||'').localeCompare(b.time||'');}
-function countOpen(){var n=0;state.tasks.forEach(function(x){if(!x.done)n++;});return n;}
-function num(n){return (+n||0).toLocaleString('fr-FR');}
-function readData(){try{var raw=localStorage.getItem(KEY);if(!raw)return JSON.parse(JSON.stringify(defaultData));var x=JSON.parse(raw);if(!x||typeof x!=='object')throw Error();var out=JSON.parse(JSON.stringify(defaultData));['tasks','events','projects','leads','goals','shortcuts'].forEach(function(k){if(Array.isArray(x[k]))out[k]=x[k].slice(0,3000);});if(x.agentLinks&&typeof x.agentLinks==='object')out.agentLinks=x.agentLinks;return out;}catch(e){return JSON.parse(JSON.stringify(defaultData));}}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(state));return true;}catch(e){toast('Stockage indisponible : exporte une sauvegarde.');return false;}}
-function mutate(){save();render();}
-function toast(s){var t=element('toast');t.textContent=s;t.className='toast visible';if(toastTimer)clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.className='toast';},3300);}
-function safeUrl(u){try{var p=document.createElement('a');p.href=u;return /^https:$/i.test(p.protocol)&&!!p.hostname;}catch(e){return false;}}
-function link(url,label,cls){return safeUrl(url)?'<a class="'+(cls||'')+'" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+esc(label)+'</a>':'';}
-function navRender(){var out='';NAV.forEach(function(x){out+='<a href="#'+x[0]+'" class="nav-link'+(page===x[0]?' active':'')+'" data-nav="'+x[0]+'"><span class="nav-icon">'+x[2]+'</span>'+esc(x[1])+'</a>';});element('navigation').innerHTML=out;var title='VUE D’ENSEMBLE';NAV.forEach(function(x){if(x[0]===page)title=x[1].toUpperCase();});element('crumbTitle').textContent=title;}
-function intro(kicker,title,subtitle){return '<section class="intro"><div><div class="eyebrow">'+esc(kicker)+'</div><h1>'+esc(title)+'</h1><p>'+esc(subtitle)+'</p></div><div class="date-box"><span>AUJOURD’HUI</span><strong>'+esc(friendly(today(),{day:'numeric',month:'short',year:'numeric'}))+'</strong></div></section>';}
-function panelTitle(t,action,label){return '<div class="panel-title"><h3>'+esc(t)+'</h3>'+(action?'<button class="panel-link" data-action="'+action+'">'+esc(label||'Voir tout')+' ↗</button>':'')+'</div>';}
-function empty(t,p,action,label){return '<div class="empty"><strong>'+esc(t)+'</strong>'+esc(p)+(action?'<br><button class="button button-small" data-action="'+action+'">'+esc(label||'Ajouter')+'</button>':'')+'</div>';}
-function tag(t,kind){return '<span class="tag '+(kind||'')+'">'+esc(t)+'</span>';}
-function renderTask(x){return '<div class="task-row'+(x.done?' is-done':'')+'"><button class="task-check'+(x.done?' done':'')+'" data-action="toggle-task" data-id="'+esc(x.id)+'" aria-label="'+(x.done?'Réactiver':'Terminer')+' la tâche">'+(x.done?'✓':'')+'</button><div class="row-main"><strong>'+esc(x.title)+'</strong><small>'+(x.due?esc(fmtDay(x.due)):'Sans échéance')+' · '+esc(x.category||'Général')+'</small></div><div class="row-end"><button class="delete-link" data-action="del-task" data-id="'+esc(x.id)+'" aria-label="Supprimer">×</button></div></div>';}
-function renderEvent(x){return '<div class="event-row"><div class="date-tile"><strong>'+esc(dayOf(x.date))+'</strong><small>'+esc(monthOf(x.date))+'</small></div><div class="row-main"><strong>'+esc(x.title)+'</strong><small>'+esc(x.time||'Heure libre')+' · '+esc(x.type||'Rendez-vous')+'</small></div><div class="row-end"><button class="delete-link" data-action="del-event" data-id="'+esc(x.id)+'" aria-label="Supprimer">×</button></div></div>';}
-function renderMiniProject(x){return '<div class="mini-card"><div class="number">'+esc(x.type||'PROJET')+'</div><strong>'+esc(x.name)+'</strong>'+tag(x.status||'À lancer','tag-pine')+'</div>';}
-function home(){
-var now=today(),near=new Date();near.setDate(near.getDate()+7);var until=isoDay(near);
-var tasks=state.tasks.filter(function(x){return !x.done;}).sort(byDate).slice(0,5);
-var events=state.events.filter(function(x){return x.date>=now&&x.date<=until;}).sort(byDate).slice(0,4);
-var active=state.projects.filter(function(x){return x.status!=='Terminé';}).slice(0,3);
-var done=state.goals.filter(function(x){return (+x.current||0)>=(+x.target||1);}).length;
-var s=intro('TABLEAU DE BORD · 01','L’essentiel, au même endroit.','Agenda, priorités et progression : un point de départ clair pour chaque journée.');
-s+='<div class="hero"><div><div class="eyebrow">VOTRE ESPACE DE TRAVAIL</div><h2>Comprendre. Capter.<br>Raconter. Valoriser.</h2><p>Une interface qui rassemble l’activité MF Studio, les prochains rendez-vous et les objectifs à faire avancer.</p></div><div class="hero-side"><span class="hero-time">'+esc(friendly(now,{weekday:'long'}))+'</span><small>UNE ACTION À LA FOIS</small></div></div>';
-s+='<div class="kpis">'+kpi('TÂCHES EN COURS',countOpen(),'À traiter','✓')+kpi('RDV À VENIR',state.events.filter(function(x){return x.date>=now;}).length,'Agenda saisi localement','▦')+kpi('PROJETS ACTIFS',state.projects.filter(function(x){return x.status!=='Terminé';}).length,'En production','◇')+kpi('CHALLENGES',state.goals.length,done+' objectif(s) atteint(s)','◉')+'</div>';
-s+='<div class="dashboard-grid"><section class="panel">'+panelTitle('Priorités','go-tasks','Toutes les tâches')+(tasks.length?tasks.map(renderTask).join(''):empty('Aucune tâche en attente','Ajoute ta prochaine action concrète.','new-task','Nouvelle tâche'))+'</section>';
-s+='<section class="panel">'+panelTitle('Prochains rendez-vous','go-agenda','Voir l’agenda')+(events.length?events.map(renderEvent).join(''):empty('Agenda local vide','Ajoute un rendez-vous, ou ouvre Google Agenda.','new-event','Ajouter un RDV'))+'</section></div>';
-s+='<div class="section-head"><div><h2>Projets en mouvement</h2><p>Ce qui est réellement en cours</p></div><button class="button button-small" data-action="go-projects">Voir les projets →</button></div>';
-s+=active.length?'<div class="mini-projects">'+active.map(renderMiniProject).join('')+'</div>':empty('Aucun projet renseigné','Commence par créer ton premier projet.','new-project','Créer un projet');
-s+='<div class="section-head"><div><h2>Accès rapide</h2><p>Les outils essentiels à portée de main</p></div><button class="button button-small" data-action="go-agents">Mes espaces →</button></div>';
-s+=quickLinks();
-return s;
+var FILE='dashboard.json', CACHE='mf_studio_screen_last_data_v1', WEATHER='mf_studio_screen_weather_v1';
+var PARIS='Europe/Paris';
+var WEATHER_URL='https://api.open-meteo.com/v1/forecast?latitude=43.9816&longitude=-0.2300&current=temperature_2m,weather_code,is_day&daily=temperature_2m_max,temperature_2m_min&timezone=Europe%2FParis&forecast_days=1';
+var MODEL={schema:'mf-screen/v1',updatedAt:null,agenda:{date:null,items:[]},poker:{goal_eur:null,current_eur:null,hours_done:null,hours_goal:null,days_done:null,days_goal:null},commercial:{period:null,r1:null,r2:null,objective_r1:null},priorities:[]};
+function el(id){return document.getElementById(id);}
+function txt(id,value){var e=el(id);if(e)e.textContent=value;}
+function textNode(tag,cls,value){var e=document.createElement(tag);if(cls)e.className=cls;e.textContent=value;return e;}
+function isNum(v){return typeof v==='number'&&isFinite(v);}
+function value(v,unit){return isNum(v)?format(v)+(unit||''):'—'+(unit||'');}
+function format(n){return Number(n).toLocaleString('fr-FR',{maximumFractionDigits:1});}
+function percent(a,b){return isNum(a)&&isNum(b)&&b>0?Math.max(0,Math.round(100*a/b)):null;}
+function pctText(v){return v===null?'— %':String(v)+' %';}
+function progress(id,v){el(id).style.width=(v===null?0:Math.max(0,Math.min(100,v)))+'%';}
+function dateParts(now){var p=new Intl.DateTimeFormat('fr-FR',{timeZone:PARIS,year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(now),a={};for(var i=0;i<p.length;i++)if(p[i].type!=='literal')a[p[i].type]=p[i].value;return a.year+'-'+a.month+'-'+a.day;}
+function currentDate(){try{return dateParts(new Date());}catch(e){var n=new Date();return n.getFullYear()+'-'+pad(n.getMonth()+1)+'-'+pad(n.getDate());}}
+function pad(n){return n<10?'0'+n:String(n);}
+function clockTick(){var n=new Date();try{txt('clock',new Intl.DateTimeFormat('fr-FR',{timeZone:PARIS,hour:'2-digit',minute:'2-digit',hour12:false}).format(n).replace(/\s/g,''));var d=new Intl.DateTimeFormat('fr-FR',{timeZone:PARIS,weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(n);txt('date',d.charAt(0).toUpperCase()+d.slice(1));}catch(e){txt('clock',pad(n.getHours())+':'+pad(n.getMinutes()));txt('date',n.toLocaleDateString('fr-FR'));}}
+function safeLoad(key){try{var x=localStorage.getItem(key);return x?JSON.parse(x):null;}catch(e){return null;}}
+function safeSave(key,data){try{localStorage.setItem(key,JSON.stringify(data));}catch(e){}}
+function applyAgenda(data){
+  var box=el('agendaList');while(box.firstChild)box.removeChild(box.firstChild);
+  var a=data.agenda||{},today=currentDate();
+  if(a.date!==today){box.appendChild(textNode('p','placeholder','Agenda du '+today+' : mise à jour en attente'));return;}
+  var items=Array.isArray(a.items)?a.items.slice(0,5):[];
+  if(!items.length){box.appendChild(textNode('p','placeholder','Aucun rendez-vous communiqué pour aujourd’hui.'));return;}
+  items.sort(function(x,y){return String(x.time||'').localeCompare(String(y.time||''));});
+  for(var i=0;i<items.length;i++){
+    var x=items[i];if(!x||typeof x.title!=='string')continue;
+    var row=textNode('div','agenda-row','');
+    row.appendChild(textNode('span','agenda-time',String(x.time||'—').slice(0,5)));
+    row.appendChild(textNode('span','agenda-bullet','•'));
+    row.appendChild(textNode('span','agenda-name',x.title.slice(0,95)));
+    box.appendChild(row);
+  }
 }
-function kpi(label,value,note,ico){return '<div class="kpi"><div class="kpi-top"><span>'+label+'</span><span class="kpi-icon">'+ico+'</span></div><div class="kpi-value">'+esc(num(value))+'</div><div class="kpi-note">'+esc(note)+'</div></div>';}
-function quickLinks(){var links=[['Google Agenda','https://calendar.google.com','Rendez-vous'],['Google Drive','https://drive.google.com','Fichiers'],['ChatGPT','https://chatgpt.com','Projets et agents'],['GitHub','https://github.com/tiedomi64-prog/mf-tools','Site et code']].concat(state.shortcuts.filter(function(x){return safeUrl(x.url);}).map(function(x){return [x.label,x.url,'Raccourci personnel'];}));return '<div class="link-grid">'+links.map(function(x){return '<a class="quick-link" href="'+esc(x[1])+'" target="_blank" rel="noopener noreferrer"><strong>'+esc(x[0])+' ↗</strong><span>'+esc(x[2])+'</span></a>';}).join('')+'</div>';}
-function tasksPage(){var a=state.tasks.slice().sort(function(a,b){if(a.done!==b.done)return a.done?1:-1;return byDate(a,b);});return intro('ORGANISATION','Mes tâches','Des actions concrètes, une à une.')+'<div class="page-tools"><p>'+num(countOpen())+' tâche(s) à faire · '+num(state.tasks.length)+' au total</p><button class="button button-primary" data-action="new-task">＋ Ajouter une tâche</button></div><section class="panel">'+(a.length?a.map(renderTask).join(''):empty('Ta liste est vide','Crée une première tâche pour démarrer.','new-task','Ajouter'))+'</section>';}
-function agendaPage(){var a=state.events.slice().sort(byDate);return intro('PLANNING','Mon agenda','Rendez-vous saisis sur cet appareil — pas encore de connexion à Google Agenda.')+'<div class="page-tools"><p>'+num(a.length)+' rendez-vous enregistré(s)</p><button class="button button-primary" data-action="new-event">＋ Ajouter un rendez-vous</button></div><div class="notice">La synchronisation Google Agenda n’est pas encore activée. '+link('https://calendar.google.com','Ouvrir Google Agenda','')+'</div><section class="panel">'+(a.length?a.map(renderEvent).join(''):empty('Pas encore de rendez-vous','Ajoute-les ici en attendant la connexion sécurisée à Google Agenda.','new-event','Ajouter'))+'</section>';}
-function projectsPage(){var a=state.projects.slice();return intro('PRODUCTION','Mes projets','Du brief à la livraison, garde une vision simple de ton activité.')+'<div class="page-tools"><p>'+num(a.length)+' projet(s)</p><button class="button button-primary" data-action="new-project">＋ Nouveau projet</button></div>'+(a.length?'<div class="table-card"><div class="table-head"><span>Projet</span><span>État</span><span></span></div>'+a.map(function(x){return '<div class="table-line"><div><strong>'+esc(x.name)+'</strong><small>'+esc(x.type||'Projet')+(x.notes?' · '+esc(x.notes):'')+'</small></div><div><select class="form-select" data-change="project-status" data-id="'+esc(x.id)+'">'+options(['À lancer','En cours','En attente','À livrer','Terminé'],x.status)+'</select></div><div class="table-actions"><button class="delete-link" data-action="del-project" data-id="'+esc(x.id)+'" aria-label="Supprimer">×</button></div></div>';}).join('')+'</div>':empty('Aucun projet pour le moment','Renseigne uniquement les projets que tu souhaites suivre.','new-project','Créer un projet'));}
-function salesPage(){var a=state.leads.slice();var stages=['À contacter','Contacté','R1','R2','Devis','Gagné','Perdu','En pause'];return intro('DÉVELOPPEMENT','Suivi commercial','Un suivi rapide de la prospection et des prochaines étapes.')+'<div class="page-tools"><p>'+num(a.length)+' prospect(s) · '+num(a.filter(function(x){return x.status==='Gagné';}).length)+' gagné(s)</p><button class="button button-primary" data-action="new-lead">＋ Nouveau prospect</button></div>'+(a.length?'<div class="table-card"><div class="table-head"><span>Prospect</span><span>Étape</span><span></span></div>'+a.map(function(x){return '<div class="table-line"><div><strong>'+esc(x.name)+'</strong><small>'+esc(x.notes||'Aucune note')+'</small></div><div><select class="form-select" data-change="lead-status" data-id="'+esc(x.id)+'">'+options(stages,x.status)+'</select></div><div class="table-actions"><button class="delete-link" data-action="del-lead" data-id="'+esc(x.id)+'" aria-label="Supprimer">×</button></div></div>';}).join('')+'</div>':empty('Aucun prospect local','Ajoute un contact à suivre, sans exposer tes données sur GitHub.','new-lead','Ajouter un prospect'));}
-function goalsPage(){var a=state.goals.slice();return intro('PROGRESSION','Mes challenges','Avancer un peu chaque jour, rendre les progrès visibles.')+'<div class="page-tools"><p>'+num(a.length)+' challenge(s) suivi(s)</p><button class="button button-primary" data-action="new-goal">＋ Nouveau challenge</button></div>'+(a.length?'<div class="goal-list">'+a.map(function(x){var value=Math.max(0,+x.current||0),total=Math.max(1,+x.target||1),pct=Math.min(100,Math.round(value/total*100));return '<div class="goal-card"><div class="eyebrow">CHALLENGE</div><h3>'+esc(x.title)+'</h3><div class="goal-numbers"><span>'+esc(num(value))+' / '+esc(num(total))+' '+esc(x.unit||'')+'</span><span>'+pct+' %</span></div><div class="progress-track"><span class="progress-fill" style="width:'+pct+'%"></span></div><div class="goal-controls"><div class="stepper"><button class="button button-small" data-action="goal-minus" data-id="'+esc(x.id)+'" aria-label="Diminuer">−</button><span>± 1</span><button class="button button-small" data-action="goal-plus" data-id="'+esc(x.id)+'" aria-label="Augmenter">+</button></div><button class="delete-link" data-action="del-goal" data-id="'+esc(x.id)+'" aria-label="Supprimer">×</button></div></div>';}).join('')+'</div>':empty('Aucun challenge enregistré','Crée un objectif mesurable : nombre de marches, séances, appels ou journées de travail.','new-goal','Créer un challenge'));}
-function agentsPage(){var cards=AGENTS.map(function(x){var url=state.agentLinks[x[2]];return '<div class="agent-card"><div class="agent-id">ESPACE '+x[2]+'</div><h3>'+esc(x[0])+'</h3><p>'+esc(x[1])+'</p><div class="agent-actions">'+(safeUrl(url)?link(url,'Ouvrir l’espace ↗',''):'<span style="color:#a6aaa2;font-size:10px">Lien non configuré</span>')+'<button class="panel-link" data-action="agent-link" data-id="'+x[2]+'">Configurer</button></div></div>';}).join('');return intro('MF STUDIO','Mes espaces','Configure ici les liens réels de tes projets ChatGPT, de tes dossiers Drive ou de tes outils.')+'<div class="notice">Chaque espace devient cliquable dès que son URL est enregistrée. Les liens sont conservés sur cet appareil uniquement.</div><div class="agent-grid">'+cards+'</div><div class="section-head"><div><h2>Raccourcis</h2><p>Services et ressources fréquemment utilisés</p></div><button class="button button-small" data-action="new-shortcut">＋ Ajouter</button></div>'+quickLinks()+(state.shortcuts.length?'<div style="margin-top:16px">'+state.shortcuts.map(function(x){return '<button class="button button-small button-danger" data-action="del-shortcut" data-id="'+esc(x.id)+'" style="margin:4px">Retirer '+esc(x.label)+'</button>';}).join('')+'</div>':'');}
-function settingsPage(){return intro('CONFIGURATION','Réglages','Conserve la maîtrise des informations que tu saisis.')+'<div class="notice"><strong>Confidentialité.</strong> Le code du site est public sur GitHub Pages. Tes tâches, prospects, rendez-vous et liens personnalisés ne sont pas publiés : ils sont enregistrés dans le navigateur de cet appareil, sauf si tu exportes toi-même une sauvegarde.</div><div class="settings-grid"><section class="setting-card"><h3>Sauvegarder mes données</h3><p>Exporte un fichier JSON et conserve-le dans un endroit privé. Tu peux ensuite l’importer sur un autre appareil pour retrouver ton tableau de bord.</p><div class="button-row"><button class="button button-primary" data-action="export">Exporter JSON</button><button class="button" data-action="import">Importer JSON</button></div></section><section class="setting-card"><h3>Connexions futures</h3><p>Google Agenda, CRM et projets ChatGPT ne sont pas synchronisés automatiquement à ce stade. Une connexion sécurisée devra être mise en place avant tout accès à tes données de compte.</p><div class="button-row">'+link('https://calendar.google.com','Google Agenda ↗','button')+link('https://drive.google.com','Google Drive ↗','button')+'</div></section><section class="setting-card"><h3>Utiliser sur iPad</h3><p>Ouvre ce site dans Safari, puis Partager → Sur l’écran d’accueil. Sur les anciens iPad, certaines fonctions modernes peuvent rester limitées.</p></section><section class="setting-card"><h3>Repartir de zéro</h3><p>Efface uniquement les données de MF Control sur ce navigateur. Cette action ne touche pas ton compte GitHub ni aux autres appareils.</p><button class="button button-danger" data-action="reset">Effacer les données locales</button></section></div>';}
-function options(vals,selected){return vals.map(function(x){return '<option value="'+esc(x)+'"'+(x===selected?' selected':'')+'>'+esc(x)+'</option>';}).join('');}
-function render(){if(NAV.every(function(x){return x[0]!==page;}))page='home';navRender();var out;if(page==='home')out=home();if(page==='agenda')out=agendaPage();if(page==='tasks')out=tasksPage();if(page==='projects')out=projectsPage();if(page==='sales')out=salesPage();if(page==='goals')out=goalsPage();if(page==='agents')out=agentsPage();if(page==='settings')out=settingsPage();element('main').innerHTML=out;document.title='MF CONTROL · '+NAV.filter(function(x){return x[0]===page;})[0][1];}
-function field(label,name,type,value,required){return '<div class="field"><label for="f-'+name+'">'+esc(label)+'</label><input id="f-'+name+'" class="form-field" type="'+type+'" name="'+name+'" value="'+esc(value||'')+'" '+(required?'required':'')+'></div>';}
-function selectField(label,name,vals){return '<div class="field"><label for="f-'+name+'">'+esc(label)+'</label><select id="f-'+name+'" class="form-select" name="'+name+'">'+options(vals,vals[0])+'</select></div>';}
-function modal(type,aid){
-var title='',form='';
-if(type==='task'){title='Nouvelle tâche';form=field('Action à réaliser','title','text','',true)+'<div class="form-grid">'+field('Échéance','due','date',today(),false)+selectField('Catégorie','category',['Général','Commercial','Production','Personnel'])+'</div>';}
-if(type==='event'){title='Nouveau rendez-vous';form=field('Intitulé','title','text','',true)+'<div class="form-grid">'+field('Date','date','date',today(),true)+field('Heure','time','time','',false)+'</div>'+selectField('Type','type',['Professionnel','Personnel','Tournage','Appel','Autre']);}
-if(type==='project'){title='Nouveau projet';form=field('Nom du projet','name','text','',true)+selectField('Type','type',['Vidéo','Photo','Media Day','Événement','Autre'])+field('Note courte (facultatif)','notes','text','',false);}
-if(type==='lead'){title='Nouveau prospect';form=field('Entreprise ou contact','name','text','',true)+field('Prochaine action / note','notes','text','',false);}
-if(type==='goal'){title='Nouveau challenge';form=field('Intitulé','title','text','',true)+'<div class="form-grid">'+field('Objectif chiffré','target','number','10',true)+field('Unité (ex. séances)','unit','text','fois',false)+'</div>';}
-if(type==='agent'){title='Lien de mon espace';form='<p>Colle l’URL de ce projet ChatGPT, dossier Drive ou outil. Aucun lien n’est configuré par défaut.</p>'+field('Adresse HTTPS','url','url',state.agentLinks[aid]||'',false);}
-if(type==='shortcut'){title='Nouveau raccourci';form=field('Nom du raccourci','label','text','',true)+field('Adresse HTTPS','url','url','https://',true);}
-var d=element('dialog');d.innerHTML='<div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><h2 id="modalTitle">'+title+'</h2><p>Cette information sera enregistrée uniquement sur cet appareil.</p><form id="editForm" data-kind="'+type+'" data-id="'+esc(aid||'')+'">'+form+'<div class="modal-actions"><button class="button" type="button" data-action="close-modal">Annuler</button><button class="button button-primary" type="submit">Enregistrer</button></div></form></div>';d.className='dialog-layer open';d.setAttribute('aria-hidden','false');var first=d.querySelector('input');if(first)first.focus();}
-function closeModal(){var d=element('dialog');d.className='dialog-layer';d.setAttribute('aria-hidden','true');d.innerHTML='';}
-function formValue(f,n){var x=f.elements[n];return x?String(x.value||'').trim():'';}
-function handleForm(f){var type=f.getAttribute('data-kind'),aid=f.getAttribute('data-id'),item={id:id()};
-if(type==='task'){item.title=formValue(f,'title');item.due=formValue(f,'due');item.category=formValue(f,'category');item.done=false;if(!item.title)return;state.tasks.push(item);}
-if(type==='event'){item.title=formValue(f,'title');item.date=formValue(f,'date');item.time=formValue(f,'time');item.type=formValue(f,'type');if(!item.title||!item.date)return;state.events.push(item);}
-if(type==='project'){item.name=formValue(f,'name');item.notes=formValue(f,'notes');item.type=formValue(f,'type');item.status='À lancer';if(!item.name)return;state.projects.push(item);}
-if(type==='lead'){item.name=formValue(f,'name');item.notes=formValue(f,'notes');item.status='À contacter';if(!item.name)return;state.leads.push(item);}
-if(type==='goal'){item.title=formValue(f,'title');item.target=Math.floor(+formValue(f,'target'));item.unit=formValue(f,'unit');item.current=0;if(!item.title||!isFinite(item.target)||item.target<1||item.target>1000000){toast('Objectif incorrect.');return;}state.goals.push(item);}
-if(type==='agent'){var u=formValue(f,'url');if(u&&!safeUrl(u)){toast('Utilise une adresse HTTPS valide.');return;}if(u)state.agentLinks[aid]=u;else delete state.agentLinks[aid];}
-if(type==='shortcut'){item.label=formValue(f,'label');item.url=formValue(f,'url');if(!item.label||!safeUrl(item.url)){toast('Nom et adresse HTTPS requis.');return;}state.shortcuts.push(item);}
-closeModal();mutate();toast('Enregistré sur cet appareil.');}
-function remove(kind,id){if(!confirm('Supprimer cet élément ?'))return;state[kind]=state[kind].filter(function(x){return x.id!==id;});mutate();}
-function exportData(){var content=JSON.stringify(state,null,2);try{var blob=new Blob([content],{type:'application/json;charset=utf-8'});var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='mf-control-sauvegarde-'+today()+'.json';document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(function(){URL.revokeObjectURL(url);},5000);toast('Sauvegarde prête. Conserve-la dans un dossier privé.');}catch(e){toast('Export non disponible sur ce navigateur.');}}
-function importData(file){if(!file)return;var reader=new FileReader();reader.onload=function(){try{var x=JSON.parse(reader.result);if(!x||x.version!==1||!Array.isArray(x.tasks)||!Array.isArray(x.events)||!Array.isArray(x.projects)||!Array.isArray(x.leads)||!Array.isArray(x.goals))throw Error();if(!confirm('Remplacer les données locales par ce fichier ?'))return;state={version:1,tasks:x.tasks.slice(0,3000),events:x.events.slice(0,3000),projects:x.projects.slice(0,3000),leads:x.leads.slice(0,3000),goals:x.goals.slice(0,3000),agentLinks:x.agentLinks||{},shortcuts:Array.isArray(x.shortcuts)?x.shortcuts.slice(0,3000):[]};mutate();toast('Sauvegarde importée.');}catch(e){toast('Fichier non reconnu : utilise un export MF Control V1.');}};reader.readAsText(file);}
-function menu(close){element('sidebar').className='sidebar'+(close?'':' open');element('mobileShade').className='mobile-shade'+(close?'':' show');}
-document.addEventListener('click',function(e){
-var el=e.target;while(el&&el!==document&&!el.getAttribute('data-action'))el=el.parentNode;if(!el||el===document)return;var action=el.getAttribute('data-action'),iid=el.getAttribute('data-id');
-if(action==='menu'){menu(false);return;}if(action==='close-menu'){menu(true);return;}if(action==='close-modal'){closeModal();return;}
-var newTypes={'new-task':'task','new-event':'event','new-project':'project','new-lead':'lead','new-goal':'goal','new-shortcut':'shortcut','agent-link':'agent'};
-if(newTypes[action]){modal(newTypes[action],iid);return;}
-if(action.substring(0,3)==='go-'){location.hash='#'+action.substring(3);return;}
-if(action==='toggle-task'){state.tasks.forEach(function(x){if(x.id===iid)x.done=!x.done;});mutate();return;}
-var del={'del-task':'tasks','del-event':'events','del-project':'projects','del-lead':'leads','del-goal':'goals','del-shortcut':'shortcuts'};
-if(del[action]){remove(del[action],iid);return;}
-if(action==='goal-plus'||action==='goal-minus'){state.goals.forEach(function(x){if(x.id===iid)x.current=Math.max(0,(+x.current||0)+(action==='goal-plus'?1:-1));});mutate();return;}
-if(action==='export'){exportData();return;}if(action==='import'){element('importFile').click();return;}
-if(action==='reset'){if(confirm('Effacer définitivement toutes les données locales de MF Control sur cet appareil ?')){localStorage.removeItem(KEY);state=readData();mutate();toast('Données locales effacées.');}return;}
-});
-document.addEventListener('change',function(e){var t=e.target,kind=t.getAttribute('data-change'),iid=t.getAttribute('data-id');if(kind==='project-status'){state.projects.forEach(function(x){if(x.id===iid)x.status=t.value;});mutate();}if(kind==='lead-status'){state.leads.forEach(function(x){if(x.id===iid)x.status=t.value;});mutate();}});
-document.addEventListener('submit',function(e){if(e.target&&e.target.id==='editForm'){e.preventDefault();handleForm(e.target);}});
-element('importFile').addEventListener('change',function(e){importData(e.target.files[0]);e.target.value='';});
-element('dialog').addEventListener('click',function(e){if(e.target===element('dialog'))closeModal();});
-document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeModal();menu(true);}});
-window.addEventListener('hashchange',function(){page=(location.hash||'#home').substring(1);menu(true);render();window.scrollTo(0,0);});
-render();
+function applyPoker(d){
+  var p=d.poker||{},money=percent(p.current_eur,p.goal_eur),hours=percent(p.hours_done,p.hours_goal),days=percent(p.days_done,p.days_goal);
+  txt('pokerAmount',value(p.current_eur,' €'));
+  txt('pokerGoalAmount','/ '+value(p.goal_eur,' €'));
+  txt('pokerGoal',value(p.goal_eur,' €'));
+  txt('pokerResult',value(p.current_eur,' €'));
+  txt('pokerPercentage',pctText(money));
+  txt('pokerResultPct',pctText(money));
+  txt('pokerHours',value(p.hours_done,' h')+' / '+value(p.hours_goal,' h'));
+  txt('pokerHoursPct',pctText(hours));
+  txt('pokerDays',value(p.days_done)+' / '+value(p.days_goal,' jours'));
+  txt('pokerDaysPct',pctText(days));
+  progress('pokerResultBar',money);progress('pokerHoursBar',hours);progress('pokerDaysBar',days);
+  el('pokerDonut').style.background='conic-gradient(from 0deg,#e3a05f 0%,#e3a05f '+(money===null?0:Math.max(0,Math.min(100,money)))+'%,#516451 '+(money===null?0:Math.max(0,Math.min(100,money)))+'%,#516451 100%)';
+  el('pokerDonut').setAttribute('aria-label','Challenge poker : '+pctText(money)+' de l’objectif');
+}
+function applyCommercial(d){
+  var c=d.commercial||{},rate=percent(c.r1,c.objective_r1);
+  txt('salesGoal',value(c.objective_r1));txt('r1Count',value(c.r1));txt('r2Count',value(c.r2));
+  txt('salesPercent',pctText(rate));progress('salesBar',rate);
+  var conversion=percent(c.r2,c.r1);
+  txt('salesSub',isNum(c.r1)&&isNum(c.r2)&&c.r1>0?'Conversion R1 → R2 : '+pctText(conversion):(c.period?'Période : '+String(c.period).slice(0,45):'Données à actualiser'));
+}
+function applyPriorities(data){
+  var box=el('priorities');while(box.firstChild)box.removeChild(box.firstChild);
+  var p=Array.isArray(data.priorities)?data.priorities.slice(0,3):[];
+  if(!p.length){box.appendChild(textNode('p','priority-empty','Les priorités seront affichées après mise à jour.'));return;}
+  for(var i=0;i<p.length;i++){
+    if(typeof p[i]!=='string')continue;
+    var row=textNode('div','priority-item','');
+    row.appendChild(textNode('span','priority-index',String(i+1)+'.'));
+    row.appendChild(textNode('span','priority-text',p[i].slice(0,95)));
+    box.appendChild(row);
+  }
+}
+function applyData(data){if(!data||data.schema!==MODEL.schema)return false;applyAgenda(data);applyPoker(data);applyCommercial(data);applyPriorities(data);return true;}
+function fetchData(){
+  var url=FILE+'?t='+Date.now();
+  fetch(url,{cache:'no-store'}).then(function(resp){if(!resp.ok)throw new Error('Données absentes');return resp.json();}).then(function(data){
+    if(!applyData(data))throw new Error('Format incorrect');
+    safeSave(CACHE,data);
+    txt('dataStatus','Suivi opérationnel chargé. '+(data.updatedAt?'Actualisé le '+data.updatedAt:'Mise à jour non datée'));
+  }).catch(function(){var stored=safeLoad(CACHE);if(stored&&applyData(stored)){txt('dataStatus','Mode hors ligne : dernière version enregistrée.');}else{applyData(MODEL);txt('dataStatus','En attente des données du directeur des opérations.');}});
+}
+function weatherCondition(code){if(code===0)return 'clear';if(code===1||code===2)return 'partly';if(code===3||code===45||code===48)return 'cloudy';if(code>=51)return 'rain';return 'partly';}
+function weatherDescription(code){if(code===0)return 'Ciel dégagé';if(code===1||code===2)return 'Éclaircies';if(code===3)return 'Nuageux';if(code===45||code===48)return 'Brouillard';if(code>=51&&code<=57)return 'Bruine';if(code>=61&&code<=67)return 'Pluie';if(code>=71&&code<=77)return 'Neige';if(code>=80&&code<=82)return 'Averses';if(code>=95)return 'Orage';return 'Météo actuelle';}
+function applyWeather(data,offline){
+  if(!data||!data.current||!isNum(data.current.temperature_2m))return false;
+  var t=data.current.temperature_2m,code=data.current.weather_code||0,hi=data.daily&&data.daily.temperature_2m_max&&data.daily.temperature_2m_max[0],lo=data.daily&&data.daily.temperature_2m_min&&data.daily.temperature_2m_min[0];
+  txt('temp',Math.round(t)+'°C');
+  txt('weatherRange','Max. '+(isNum(hi)?Math.round(hi)+'°C':'—')+' · Min. '+(isNum(lo)?Math.round(lo)+'°C':'—'));
+  txt('weatherStatus',weatherDescription(code)+(offline?' · dernière mesure':' · Open-Meteo'));
+  el('weatherIcon').setAttribute('data-condition',weatherCondition(code));
+  return true;
+}
+function fetchWeather(){
+  fetch(WEATHER_URL,{cache:'no-store'}).then(function(resp){if(!resp.ok)throw new Error('Météo indisponible');return resp.json();}).then(function(data){if(!applyWeather(data,false))throw new Error('Données météo incorrectes');safeSave(WEATHER,data);}).catch(function(){var old=safeLoad(WEATHER);if(!applyWeather(old,true)){txt('weatherStatus','Météo indisponible');}});
+}
+function syncIfNewDay(){var d=currentDate();if(syncIfNewDay.last!==d){syncIfNewDay.last=d;fetchData();fetchWeather();}}
+clockTick();applyData(MODEL);var cached=safeLoad(CACHE);if(cached)applyData(cached);
+var oldWeather=safeLoad(WEATHER);if(oldWeather)applyWeather(oldWeather,true);
+fetchData();fetchWeather();syncIfNewDay.last=currentDate();
+setInterval(function(){clockTick();syncIfNewDay();},1000);
+setInterval(fetchWeather,15*60*1000);
+setInterval(fetchData,5*60*1000);
+document.addEventListener('visibilitychange',function(){if(!document.hidden){clockTick();fetchWeather();fetchData();}});
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./sw.js').catch(function(){});});}
 })();

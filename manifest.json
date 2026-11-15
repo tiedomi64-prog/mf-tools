@@ -1,13 +1,13 @@
 {
-  "name": "MF CONTROL — Tableau de bord",
-  "short_name": "MF Control",
-  "description": "Espace de pilotage personnel MF Studio",
+  "name": "MF Studio — Écran de pilotage",
+  "short_name": "MF Studio",
+  "description": "Horloge, météo et suivis MF Studio",
   "lang": "fr",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#17201f",
-  "theme_color": "#17201f",
+  "background_color": "#f0e8dd",
+  "theme_color": "#eee8de",
   "icons": [
     {
       "src": "icon.svg",
