@@ -1,0 +1,19 @@
+# MF Studio — affichage iPad privé (Worker distinct du GitHub Pages public)
+name = "mf-studio-ipad-prive"
+main = "src/index.js"
+compatibility_date = "2026-11-15"
+workers_dev = true
+
+# À remplacer par l'ID retourné par: npx wrangler kv namespace create STORE
+[[kv_namespaces]]
+binding = "STORE"
+id = "578adb0680f14ae1928eb97bd00c3cb4"
+
+[assets]
+directory = "./site"
+binding = "ASSETS"
+run_worker_first = true
+
+# Récupération des sources toutes les 15 minutes. Exécution en UTC.
+[triggers]
+crons = ["*/15 * * * *"]
