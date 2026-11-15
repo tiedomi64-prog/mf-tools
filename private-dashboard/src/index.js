@@ -41,6 +41,8 @@ async function sessionFor(request,env){
   const key="device:"+await digest(t);
   const value=await env.STORE.get(key,"json");
   if(!value||!Number.isFinite(value.renewedAt))return null;
+  const epoch=Number(await env.STORE.get("setup:epoch")||"1");
+  if(value.epoch!==epoch)return null;
   if(Date.now()-value.renewedAt>7*86400000){
     await env.STORE.put(key,JSON.stringify({...value,renewedAt:Date.now()}),{expirationTtl:SESSION_TTL});
   }
@@ -69,7 +71,8 @@ async function pair(request,env){
   if(!safeEquals(String(form.get("code")||""),env.PAIRING_CODE))
     return send(pairingHtml(true),403,{"Content-Type":"text/html; charset=utf-8"});
   const t=newToken();
-  await env.STORE.put("device:"+await digest(t),JSON.stringify({createdAt:Date.now(),renewedAt:Date.now()}),{expirationTtl:SESSION_TTL});
+  const epoch=Number(await env.STORE.get("setup:epoch")||"1");
+  await env.STORE.put("device:"+await digest(t),JSON.stringify({createdAt:Date.now(),renewedAt:Date.now(),epoch}),{expirationTtl:SESSION_TTL});
   await env.STORE.put("setup:paired","1");
   return redirect("/",t);
 }
@@ -134,8 +137,10 @@ export default {
     }
     if(path==="/api/reset-pair"&&request.method==="POST"){
       if(!writer(request,env))return json({error:"unauthorized"},401);
+      const epoch=Number(await env.STORE.get("setup:epoch")||"1")+1;
+      await env.STORE.put("setup:epoch",String(epoch));
       await env.STORE.delete("setup:paired");
-      return json({ok:true,note:"Previous device sessions are not revoked; revoke by changing KV namespace."});
+      return json({ok:true,revoked:true,note:"All existing device sessions revoked; pair new iPad."});
     }
     const t=await sessionFor(request,env);
     if(path==="/pair"&&request.method==="GET"){
