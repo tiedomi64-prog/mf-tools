@@ -53,7 +53,7 @@ async function sheetValues(token,id,range){
 function numeric(value){
   if(typeof value==="number"&&Number.isFinite(value)&&value>=0)return value;
   if(typeof value==="string"&&/^\d+(?:[.,]\d+)?$/.test(value.trim())){
-    return Number(value.replace(",","."));
+    return Number(value.replace(",",".").replace(/\s/g,""));
   }
   return null;
 }
@@ -116,11 +116,14 @@ async function readCalendar(token,env,today){
   }).slice(0,5).sort((a,b)=>a.time.localeCompare(b.time));
   return {date:today,items:ordered.map(x=>({time:x.time,title:x.title}))};
 }
-function dateInMonth(value,month){
+function isoDay(value){
   const m=String(value||"").match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})|^(\d{4})-(\d{2})-(\d{2})/);
-  if(!m)return false;
-  const iso=m[3]?m[3]+"-"+m[2].padStart(2,"0"):m[4]+"-"+m[5];
-  return iso===month;
+  if(!m)return null;
+  return m[3]?m[3]+"-"+m[2].padStart(2,"0")+"-"+m[1].padStart(2,"0"):m[4]+"-"+m[5]+"-"+m[6];
+}
+function dateInMonth(value,month){
+  const day=isoDay(value);
+  return !!day&&day.slice(0,7)===month;
 }
 async function readCommercial(token,env,today){
   if(!env.CRM_SHEET_ID)return null;
@@ -133,12 +136,12 @@ async function readCommercial(token,env,today){
   for(const row of journal.slice(1)){
     if(!dateInMonth(row[0],month))continue;
     const phase=String(row[2]||"").trim().toUpperCase();
-    if(phase==="R1"||phase==="R1 RÉALISÉ"||phase==="R1 REALISE")r1.add(String(row[1])+"|"+String(row[0]).slice(0,10));
+    if(phase==="R1"||phase==="R1 RÉALISÉ"||phase==="R1 REALISE")r1.add(String(row[1])+"|"+isoDay(row[0]));
     if(phase==="R2"||phase==="R2 RÉALISÉ"||phase==="R2 REALISE")r2.add(String(row[1])+"|"+String(row[0]).slice(0,10));
   }
   for(const row of rendezVous.slice(1)){
     if(!dateInMonth(row[3],month)||!/r.alis./i.test(String(row[5]||"")))continue;
-    if(row[2]==="R1")r1.add(String(row[1])+"|"+String(row[3]).slice(0,10));
+    if(row[2]==="R1")r1.add(String(row[1])+"|"+isoDay(row[3]));
     if(row[2]==="R2")r2.add(String(row[1])+"|"+String(row[3]).slice(0,10));
   }
   // No recorded rendez-vous does not mean zero appointments really took place.
