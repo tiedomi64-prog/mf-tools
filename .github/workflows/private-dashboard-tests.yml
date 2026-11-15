@@ -1,0 +1,28 @@
+name: Vérification du tableau iPad privé
+on:
+  pull_request:
+    paths:
+      - "private-dashboard/**"
+      - ".github/workflows/private-dashboard-tests.yml"
+  push:
+    branches:
+      - "feat/private-ipad-dashboard-20261115"
+    paths:
+      - "private-dashboard/**"
+      - ".github/workflows/private-dashboard-tests.yml"
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Controle de syntaxe et securite
+        run: |
+          node --check private-dashboard/src/index.js
+          node --check private-dashboard/src/sync.js
+          node --check private-dashboard/site/app.js
+          node --test private-dashboard/tests/dashboard.test.js
